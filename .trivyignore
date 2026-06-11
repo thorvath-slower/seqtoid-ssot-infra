@@ -1,0 +1,20 @@
+# Triaged Trivy exceptions (improvement-#010). Each entry is a reviewed,
+# accepted finding — keep the reason + date so it can be re-evaluated.
+
+# --- ACCEPTED (by design) ----------------------------------------------------
+# AWS-0164: "Subnet associates public IP address" on the network module's PUBLIC
+# subnet (map_public_ip_on_launch = true). This is by design — the public subnet
+# exists to host the NAT gateway / public-facing load balancers; private
+# workloads run in the private subnets. Reviewed + accepted 2026-06-11.
+AWS-0164
+
+# --- OPEN / pending decision (NOT accepted — re-evaluate, then remove) --------
+# AWS-0040 + AWS-0041: the foundation EKS cluster defaults to a PUBLIC API
+# endpoint open to 0.0.0.0/0 (foundation: endpoint_public_access = true,
+# eks_public_access_cidrs default ["0.0.0.0/0"]). This is a real secure-by-default
+# gap (Principle VII), NOT an accepted design. Ignored here only so the new gate
+# is usable; it needs an ops/arch decision — restrict public_access_cidrs to the
+# office/VPN egress CIDRs, or use a private endpoint + bastion. Remove these two
+# lines once that lands. Flagged 2026-06-11.
+AWS-0040
+AWS-0041
