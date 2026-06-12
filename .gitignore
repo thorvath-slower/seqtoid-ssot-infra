@@ -1,0 +1,23 @@
+# OpenTofu / Terraform local working state — never commit
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# Local var files that may carry secrets/account-specifics
+*.tfvars
+*.tfvars.json
+!example.tfvars
+
+# Override files are local conveniences
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Provider dependency locks ARE committed (reproducibility); do NOT ignore:
+# .terraform.lock.hcl
+
+# OS cruft
+.DS_Store
