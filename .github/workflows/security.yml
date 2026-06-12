@@ -1,0 +1,83 @@
+name: security
+
+# Security scanning gates (improvement-#010). Three always-on scanners plus an
+# optional Checkov full-suite pass:
+#   - gitleaks : secret scanning over git history (hard-fail on any leak)
+#   - trivy    : vuln + IaC misconfig + secret (hard-fail on HIGH/CRITICAL;
+#                triaged exceptions live in .trivyignore)
+#   - tflint   : OpenTofu/Terraform lint (hard-fail on errors; warnings reported)
+#   - checkov  : deep IaC policy pass — OPT-IN via the run_checkov flag, reserved
+#                for full-suite / prod checks. Report-only (soft-fail).
+# Renovate (improvement-#009) keeps the pinned action/tool versions current.
+
+on:
+  push:
+  pull_request:
+  merge_group:
+  workflow_dispatch:
+    inputs:
+      run_checkov:
+        description: "Also run the full Checkov policy pass (full-suite / prod check)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gitleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0   # full history for secret scanning
+      - name: Install gitleaks
+        run: |
+          VER=8.21.2
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${VER}/gitleaks_${VER}_linux_x64.tar.gz" | tar -xz gitleaks
+          sudo install -m 0755 gitleaks /usr/local/bin/gitleaks
+      - name: Scan git history for secrets
+        # CLI binary (MIT) — avoids the org-license requirement of gitleaks-action.
+        run: gitleaks git . --redact --no-banner --exit-code 1
+
+  trivy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Trivy (vuln + misconfig + secret)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,misconfig,secret
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+          exit-code: 1
+
+  tflint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: latest
+      # Core ruleset only (no cloud plugin) — fail on errors, report warnings.
+      - run: tflint --recursive --minimum-failure-severity=error --format compact
+
+  checkov:
+    # Opt-in deep policy pass (reserved for full-suite / prod runs). Report-only.
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_checkov }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
+          framework: terraform
+          soft_fail: true   # report findings without blocking; tighten after triage
+          output_format: cli
