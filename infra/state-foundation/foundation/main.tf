@@ -44,6 +44,19 @@ resource "aws_kms_key" "app" {
   deletion_window_in_days = 30
   enable_key_rotation     = true
   tags                    = local.tags
+  # Explicit root key policy (CKV2_AWS_64); downstream services (EKS, ECR,
+  # External Secrets) are granted use via their IAM policies, which the root
+  # grant enables.
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "EnableRootAccount"
+      Effect    = "Allow"
+      Principal = { AWS = "arn:${local.partition}:iam::${local.account_id}:root" }
+      Action    = "kms:*"
+      Resource  = "*"
+    }]
+  })
 
   lifecycle {
     prevent_destroy = true

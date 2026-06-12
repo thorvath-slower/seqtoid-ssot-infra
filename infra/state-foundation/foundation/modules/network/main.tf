@@ -41,6 +41,14 @@ resource "aws_vpc" "this" {
   }
 }
 
+# Lock down the VPC's default security group: no ingress, no egress, so nothing
+# can accidentally rely on it (CKV2_AWS_12). Managing it adopts it and strips all
+# rules; workloads use purpose-built SGs instead.
+resource "aws_default_security_group" "this" {
+  vpc_id = aws_vpc.this.id
+  tags   = merge(local.tags, { Name = "${var.name}-default-sg-locked" })
+}
+
 resource "aws_internet_gateway" "this" {
   vpc_id = aws_vpc.this.id
   tags   = merge(local.tags, { Name = "${var.name}-igw" })
@@ -48,6 +56,9 @@ resource "aws_internet_gateway" "this" {
 
 # --- Public subnets (ALB / NAT live here) ------------------------------------
 resource "aws_subnet" "public" {
+  # checkov:skip=CKV_AWS_130:Public ingress subnet by design — the ALB and NAT
+  # gateways live here and require public IP assignment. Workloads run in the
+  # private subnets; nodes are never placed here.
   count                   = length(var.azs)
   vpc_id                  = aws_vpc.this.id
   cidr_block              = local.public_cidrs[count.index]

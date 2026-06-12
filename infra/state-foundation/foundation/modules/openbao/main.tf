@@ -23,6 +23,9 @@ terraform {
   }
 }
 
+data "aws_caller_identity" "current" {}
+data "aws_partition" "current" {}
+
 locals {
   tags    = merge(var.tags, { "Module" = "openbao" })
   address = coalesce(var.address_override, "http://${var.service_name}.${var.namespace}.svc.cluster.local:8200")
@@ -34,6 +37,18 @@ resource "aws_kms_key" "unseal" {
   deletion_window_in_days = 30
   enable_key_rotation     = true
   tags                    = local.tags
+  # Explicit root key policy (CKV2_AWS_64); the OpenBao IRSA role below is granted
+  # use of the key via its IAM policy, which the root grant enables.
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "EnableRootAccount"
+      Effect    = "Allow"
+      Principal = { AWS = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:root" }
+      Action    = "kms:*"
+      Resource  = "*"
+    }]
+  })
 
   lifecycle {
     # Losing this key locks OpenBao sealed — protect it like state.

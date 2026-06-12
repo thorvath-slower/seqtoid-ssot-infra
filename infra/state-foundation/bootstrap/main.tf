@@ -36,6 +36,19 @@ resource "aws_kms_key" "tfstate" {
   description             = "Encrypts CZ ID OpenTofu/Terraform state"
   deletion_window_in_days = 30
   enable_key_rotation     = true
+  # Explicit key policy (CKV2_AWS_64): grant the account root full control so
+  # IAM policies govern day-to-day use, instead of relying on the implicit
+  # default policy. Without a root grant the key can become unmanageable.
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "EnableRootAccount"
+      Effect    = "Allow"
+      Principal = { AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" }
+      Action    = "kms:*"
+      Resource  = "*"
+    }]
+  })
 }
 
 resource "aws_kms_alias" "tfstate" {
@@ -124,7 +137,26 @@ resource "aws_dynamodb_table" "tflock" {
     name = "LockID"
     type = "S"
   }
+
+  # Encrypt the lock table with the state CMK (CKV_AWS_119).
+  server_side_encryption {
+    enabled     = true
+    kms_key_arn = aws_kms_key.tfstate.arn
+  }
+
+  # Recover the lock table from accidental corruption/deletion (CKV_AWS_28).
+  point_in_time_recovery {
+    enabled = true
+  }
+
   lifecycle {
     prevent_destroy = true
   }
+}
+
+# Emit S3 events to EventBridge so state mutations are observable/auditable
+# (CKV2_AWS_62). EventBridge is the lightest target (no SNS/SQS to manage).
+resource "aws_s3_bucket_notification" "tfstate" {
+  bucket      = aws_s3_bucket.tfstate.id
+  eventbridge = true
 }

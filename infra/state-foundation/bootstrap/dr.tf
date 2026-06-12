@@ -33,6 +33,17 @@ resource "aws_kms_key" "tfstate_dr" {
   description             = "Encrypts replicated CZ ID state in the DR region"
   deletion_window_in_days = 30
   enable_key_rotation     = true
+  # Explicit root key policy (CKV2_AWS_64), as on the primary state key.
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "EnableRootAccount"
+      Effect    = "Allow"
+      Principal = { AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" }
+      Action    = "kms:*"
+      Resource  = "*"
+    }]
+  })
 }
 
 resource "aws_kms_alias" "tfstate_dr" {
@@ -83,6 +94,32 @@ resource "aws_s3_bucket_public_access_block" "tfstate_dr" {
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
+}
+
+# Expire old replicated state versions on the DR side too (CKV2_AWS_61);
+# mirrors the primary bucket's lifecycle.
+resource "aws_s3_bucket_lifecycle_configuration" "tfstate_dr" {
+  count    = local.dr_count
+  provider = aws.dr
+  bucket   = aws_s3_bucket.tfstate_dr[0].id
+  rule {
+    id     = "expire-noncurrent-state"
+    status = "Enabled"
+    noncurrent_version_expiration {
+      noncurrent_days = var.state_backup_retention_days
+    }
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+}
+
+# Observe state mutations on the DR bucket via EventBridge (CKV2_AWS_62).
+resource "aws_s3_bucket_notification" "tfstate_dr" {
+  count       = local.dr_count
+  provider    = aws.dr
+  bucket      = aws_s3_bucket.tfstate_dr[0].id
+  eventbridge = true
 }
 
 # --- Replication IAM role (S3 assumes this in the primary region) ------------

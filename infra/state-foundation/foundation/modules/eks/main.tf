@@ -64,7 +64,8 @@ resource "aws_eks_cluster" "this" {
     resources = ["secrets"]
   }
 
-  enabled_cluster_log_types = ["api", "audit", "authenticator"]
+  # All five control-plane log types for full audit coverage (CKV_AWS_37).
+  enabled_cluster_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
 
   tags = local.tags
 
