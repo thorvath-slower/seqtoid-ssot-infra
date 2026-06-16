@@ -213,11 +213,38 @@ resource "aws_s3_bucket_replication_configuration" "tfstate" {
 # skipped). In the DR region, gated behind enable_dr like the rest of dr.tf.
 resource "aws_s3_bucket" "tfstate_dr_logs" {
   #checkov:skip=CKV_AWS_18:This IS the access-log target; logging a log bucket to itself is circular.
-  #checkov:skip=CKV_AWS_145:SSE-S3 (not KMS) so the S3 log-delivery service can write without a KMS key grant; access logs contain no secrets.
   #checkov:skip=CKV_AWS_144:Access logs are non-critical and regenerated; cross-region replication is unwarranted.
   count    = local.dr_count
   provider = aws.dr
   bucket   = "${local.dr_bucket_name}-logs"
+}
+
+# Dedicated CMK (DR region) for the DR access-log bucket — customer-managed key
+# encryption (CKV_AWS_145 / trivy AVD-AWS-0132) with the S3 log-delivery grant.
+resource "aws_kms_key" "tfstate_dr_logs" {
+  count               = local.dr_count
+  provider            = aws.dr
+  description         = "Encrypts S3 server-access logs for the DR state bucket"
+  enable_key_rotation = true
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "EnableRootAccount"
+        Effect    = "Allow"
+        Principal = { AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" }
+        Action    = "kms:*"
+        Resource  = "*"
+      },
+      {
+        Sid       = "AllowS3ServerAccessLogDelivery"
+        Effect    = "Allow"
+        Principal = { Service = "logging.s3.amazonaws.com" }
+        Action    = ["kms:GenerateDataKey*", "kms:Encrypt", "kms:Decrypt", "kms:Describe*"]
+        Resource  = "*"
+      }
+    ]
+  })
 }
 
 resource "aws_s3_bucket_public_access_block" "tfstate_dr_logs" {
@@ -245,7 +272,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "tfstate_dr_logs" 
   bucket   = aws_s3_bucket.tfstate_dr_logs[0].id
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.tfstate_dr_logs[0].arn
     }
     bucket_key_enabled = true
   }
