@@ -31,3 +31,9 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "flow_log_retention_days" {
+  description = "Retention (days) for the VPC flow-log CloudWatch group. >= 365 keeps the Checkov compliance baseline (CKV_AWS_338)."
+  type        = number
+  default     = 365
+}
