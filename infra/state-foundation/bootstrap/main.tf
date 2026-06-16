@@ -160,3 +160,102 @@ resource "aws_s3_bucket_notification" "tfstate" {
   bucket      = aws_s3_bucket.tfstate.id
   eventbridge = true
 }
+
+# --- Server access-log bucket for the state bucket (CKV_AWS_18) --------------
+# Receives S3 server access logs from the state bucket. Hardened like the state
+# bucket but SSE-S3 (AES256): the S3 log-delivery service writes to AES256
+# targets natively, whereas an SSE-KMS target needs an extra key grant — and
+# access logs carry no secrets, so AES256 is the pragmatic choice.
+resource "aws_s3_bucket" "tfstate_logs" {
+  #checkov:skip=CKV_AWS_18:This IS the access-log target; logging a log bucket to itself is circular.
+  #checkov:skip=CKV_AWS_145:SSE-S3 (not KMS) so the S3 log-delivery service can write without a KMS key grant; access logs contain no secrets.
+  #checkov:skip=CKV_AWS_144:Access logs are non-critical and regenerated; cross-region replication is unwarranted.
+  bucket = "${local.bucket_name}-logs"
+}
+
+resource "aws_s3_bucket_public_access_block" "tfstate_logs" {
+  bucket                  = aws_s3_bucket.tfstate_logs.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_versioning" "tfstate_logs" {
+  bucket = aws_s3_bucket.tfstate_logs.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "tfstate_logs" {
+  bucket = aws_s3_bucket.tfstate_logs.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+    bucket_key_enabled = true
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "tfstate_logs" {
+  bucket = aws_s3_bucket.tfstate_logs.id
+  rule {
+    id     = "expire-access-logs"
+    status = "Enabled"
+    filter {}
+    expiration {
+      days = var.state_backup_retention_days
+    }
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+}
+
+resource "aws_s3_bucket_notification" "tfstate_logs" {
+  bucket      = aws_s3_bucket.tfstate_logs.id
+  eventbridge = true
+}
+
+# ACLs disabled (modern default) — log delivery is granted via the bucket policy.
+resource "aws_s3_bucket_ownership_controls" "tfstate_logs" {
+  bucket = aws_s3_bucket.tfstate_logs.id
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
+
+resource "aws_s3_bucket_policy" "tfstate_logs" {
+  bucket = aws_s3_bucket.tfstate_logs.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "S3ServerAccessLogsDelivery"
+        Effect    = "Allow"
+        Principal = { Service = "logging.s3.amazonaws.com" }
+        Action    = "s3:PutObject"
+        Resource  = "${aws_s3_bucket.tfstate_logs.arn}/*"
+        Condition = {
+          ArnLike      = { "aws:SourceArn" = aws_s3_bucket.tfstate.arn }
+          StringEquals = { "aws:SourceAccount" = data.aws_caller_identity.current.account_id }
+        }
+      },
+      {
+        Sid       = "DenyInsecureTransport"
+        Effect    = "Deny"
+        Principal = "*"
+        Action    = "s3:*"
+        Resource  = [aws_s3_bucket.tfstate_logs.arn, "${aws_s3_bucket.tfstate_logs.arn}/*"]
+        Condition = { Bool = { "aws:SecureTransport" = "false" } }
+      }
+    ]
+  })
+}
+
+resource "aws_s3_bucket_logging" "tfstate" {
+  bucket        = aws_s3_bucket.tfstate.id
+  target_bucket = aws_s3_bucket.tfstate_logs.id
+  target_prefix = "s3-access/"
+}
