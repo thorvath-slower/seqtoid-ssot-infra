@@ -168,9 +168,35 @@ resource "aws_s3_bucket_notification" "tfstate" {
 # access logs carry no secrets, so AES256 is the pragmatic choice.
 resource "aws_s3_bucket" "tfstate_logs" {
   #checkov:skip=CKV_AWS_18:This IS the access-log target; logging a log bucket to itself is circular.
-  #checkov:skip=CKV_AWS_145:SSE-S3 (not KMS) so the S3 log-delivery service can write without a KMS key grant; access logs contain no secrets.
   #checkov:skip=CKV_AWS_144:Access logs are non-critical and regenerated; cross-region replication is unwarranted.
   bucket = "${local.bucket_name}-logs"
+}
+
+# Dedicated CMK for the access-log bucket so it's encrypted with a customer-managed
+# key (CKV_AWS_145 / trivy AVD-AWS-0132). The S3 server-access-log delivery service
+# is granted use of the key so it can write encrypted logs.
+resource "aws_kms_key" "tfstate_logs" {
+  description         = "Encrypts S3 server-access logs for the state bucket"
+  enable_key_rotation = true
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "EnableRootAccount"
+        Effect    = "Allow"
+        Principal = { AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" }
+        Action    = "kms:*"
+        Resource  = "*"
+      },
+      {
+        Sid       = "AllowS3ServerAccessLogDelivery"
+        Effect    = "Allow"
+        Principal = { Service = "logging.s3.amazonaws.com" }
+        Action    = ["kms:GenerateDataKey*", "kms:Encrypt", "kms:Decrypt", "kms:Describe*"]
+        Resource  = "*"
+      }
+    ]
+  })
 }
 
 resource "aws_s3_bucket_public_access_block" "tfstate_logs" {
@@ -192,7 +218,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "tfstate_logs" {
   bucket = aws_s3_bucket.tfstate_logs.id
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.tfstate_logs.arn
     }
     bucket_key_enabled = true
   }
