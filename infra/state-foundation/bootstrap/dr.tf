@@ -207,3 +207,117 @@ resource "aws_s3_bucket_replication_configuration" "tfstate" {
     }
   }
 }
+
+# --- Server access-log bucket for the DR state bucket (CKV_AWS_18) -----------
+# DR-region mirror of the primary log bucket (SSE-S3, hardened, self-logging
+# skipped). In the DR region, gated behind enable_dr like the rest of dr.tf.
+resource "aws_s3_bucket" "tfstate_dr_logs" {
+  #checkov:skip=CKV_AWS_18:This IS the access-log target; logging a log bucket to itself is circular.
+  #checkov:skip=CKV_AWS_145:SSE-S3 (not KMS) so the S3 log-delivery service can write without a KMS key grant; access logs contain no secrets.
+  #checkov:skip=CKV_AWS_144:Access logs are non-critical and regenerated; cross-region replication is unwarranted.
+  count    = local.dr_count
+  provider = aws.dr
+  bucket   = "${local.dr_bucket_name}-logs"
+}
+
+resource "aws_s3_bucket_public_access_block" "tfstate_dr_logs" {
+  count                   = local.dr_count
+  provider                = aws.dr
+  bucket                  = aws_s3_bucket.tfstate_dr_logs[0].id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_versioning" "tfstate_dr_logs" {
+  count    = local.dr_count
+  provider = aws.dr
+  bucket   = aws_s3_bucket.tfstate_dr_logs[0].id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "tfstate_dr_logs" {
+  count    = local.dr_count
+  provider = aws.dr
+  bucket   = aws_s3_bucket.tfstate_dr_logs[0].id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+    bucket_key_enabled = true
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "tfstate_dr_logs" {
+  count    = local.dr_count
+  provider = aws.dr
+  bucket   = aws_s3_bucket.tfstate_dr_logs[0].id
+  rule {
+    id     = "expire-access-logs"
+    status = "Enabled"
+    filter {}
+    expiration {
+      days = var.state_backup_retention_days
+    }
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
+  }
+}
+
+resource "aws_s3_bucket_notification" "tfstate_dr_logs" {
+  count       = local.dr_count
+  provider    = aws.dr
+  bucket      = aws_s3_bucket.tfstate_dr_logs[0].id
+  eventbridge = true
+}
+
+resource "aws_s3_bucket_ownership_controls" "tfstate_dr_logs" {
+  count    = local.dr_count
+  provider = aws.dr
+  bucket   = aws_s3_bucket.tfstate_dr_logs[0].id
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
+
+resource "aws_s3_bucket_policy" "tfstate_dr_logs" {
+  count    = local.dr_count
+  provider = aws.dr
+  bucket   = aws_s3_bucket.tfstate_dr_logs[0].id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "S3ServerAccessLogsDelivery"
+        Effect    = "Allow"
+        Principal = { Service = "logging.s3.amazonaws.com" }
+        Action    = "s3:PutObject"
+        Resource  = "${aws_s3_bucket.tfstate_dr_logs[0].arn}/*"
+        Condition = {
+          ArnLike      = { "aws:SourceArn" = aws_s3_bucket.tfstate_dr[0].arn }
+          StringEquals = { "aws:SourceAccount" = data.aws_caller_identity.current.account_id }
+        }
+      },
+      {
+        Sid       = "DenyInsecureTransport"
+        Effect    = "Deny"
+        Principal = "*"
+        Action    = "s3:*"
+        Resource  = [aws_s3_bucket.tfstate_dr_logs[0].arn, "${aws_s3_bucket.tfstate_dr_logs[0].arn}/*"]
+        Condition = { Bool = { "aws:SecureTransport" = "false" } }
+      }
+    ]
+  })
+}
+
+resource "aws_s3_bucket_logging" "tfstate_dr" {
+  count         = local.dr_count
+  provider      = aws.dr
+  bucket        = aws_s3_bucket.tfstate_dr[0].id
+  target_bucket = aws_s3_bucket.tfstate_dr_logs[0].id
+  target_prefix = "s3-access/"
+}
