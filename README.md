@@ -1,14 +1,21 @@
-# czid-infra — CZ ID Platform Foundation (Infrastructure-as-Code)
+# seqtoid — Infrastructure Foundation (Infrastructure-as-Code)
 
-The **foundation** layer of the CZ ID platform: the [OpenTofu](https://opentofu.org)
+The **foundation** layer of the seqtoid platform: the [OpenTofu](https://opentofu.org)
 Infrastructure-as-Code that provisions the shared, long-lived AWS infrastructure —
 the remote-state backend, network, EKS cluster, secrets store (OpenBao), and
-container/package registries — that **every other CZ ID repo builds on top of**.
+container/package registries — that **every other seqtoid repo builds on top of**.
 
-> **CZ ID** is a hypothesis-free metagenomic pathogen-identification platform. This
+> **seqtoid** is a hypothesis-free metagenomic pathogen-identification platform. This
 > repo is **new in the platform overhaul** (greenfield — not a fork of the legacy
 > setup) and sits at the **bottom of the stack**: nothing else can deploy until the
 > foundation exists.
+
+> **Naming:** the platform is being renamed to **seqtoid**, and the repositories are
+> migrating to the `seqtoid-*` convention over time. This README uses the target names.
+> Current → target mapping:
+> `czid-infra` → `seqtoid-infra` (this repo) · `cypherid-web-infra` → `seqtoid-web-infra` ·
+> `cypherid-workflow-infra` → `seqtoid-workflow-infra`. The `seqtoid-web`,
+> `seqtoid-graphql-federation-server`, and `seqtoid-workflows` repos already use it.
 
 ---
 
@@ -16,7 +23,7 @@ container/package registries — that **every other CZ ID repo builds on top of*
 
 The legacy platform had infrastructure and OpenTofu/Terraform state scattered across
 repos with no single, backed-up source of truth and lots of duplicated shared infra.
-`czid-infra` fixes that by establishing **one foundation**:
+This repo fixes that by establishing **one foundation**:
 
 - **One shared, backed-up state backend** — every repo's OpenTofu state lives in a
   single versioned, encrypted S3 bucket (one `key` per stack), so there's one place
@@ -34,26 +41,26 @@ whole platform one secure, durable base.
 
 ## Where this repo fits in the platform
 
-```
-                         ┌─────────────────────────────────────────────┐
-   apps + pipeline IaC   │  seqtoid-web   seqtoid-graphql-federation     │
-   (deploy ONTO the      │  seqtoid-workflows (WDL pipelines)            │
-    foundation)          │  cypherid-web-infra   cypherid-workflow-infra │
-                         └───────────────▲─────────────────────────────┘
-                                         │  data.terraform_remote_state.foundation
-                                         │  (reads foundation outputs.tf — the contract)
-                         ┌───────────────┴─────────────────────────────┐
-   THIS REPO  ────────▶  │  czid-infra (foundation)                     │
-                         │  state backend · VPC · EKS · OpenBao ·       │
-                         │  ECR/CodeArtifact · KMS · OIDC · shared roles │
-                         └─────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph apps["Apps and pipeline IaC — deploy ONTO the foundation"]
+        web["seqtoid-web"]
+        gql["seqtoid-graphql-federation-server"]
+        wdl["seqtoid-workflows (WDL pipelines)"]
+        winf["seqtoid-web-infra"]
+        pinf["seqtoid-workflow-infra"]
+    end
+    apps -->|"reads foundation outputs.tf via data.terraform_remote_state.foundation (the contract)"| foundation
+    subgraph foundation["seqtoid-infra (foundation) — THIS REPO"]
+        core["state backend · VPC · EKS · OpenBao · ECR/CodeArtifact · KMS · OIDC · shared roles"]
+    end
 ```
 
-| Repo | Role | Relationship to czid-infra |
+| Repo (target name) | Role | Relationship to the foundation |
 |---|---|---|
-| **czid-infra** (this) | Foundation IaC | Provides the state backend + shared infra everything inherits |
-| **cypherid-web-infra** | IaC for the web app's AWS resources (Aurora, CDN, services) | Consumes foundation outputs; state in the shared backend |
-| **cypherid-workflow-infra** | IaC for the bioinformatics pipeline infra (Batch, Step Functions, Lambdas) | Consumes foundation outputs; state in the shared backend |
+| **seqtoid-infra** (this) | Foundation IaC | Provides the state backend + shared infra everything inherits |
+| **seqtoid-web-infra** | IaC for the web app's AWS resources (Aurora, CDN, services) | Consumes foundation outputs; state in the shared backend |
+| **seqtoid-workflow-infra** | IaC for the bioinformatics pipeline infra (Batch, Step Functions, Lambdas) | Consumes foundation outputs; state in the shared backend |
 | **seqtoid-web** | Rails + React application | Deploys onto the foundation EKS; pulls images from its registries |
 | **seqtoid-graphql-federation-server** | Node GraphQL federation server | Deploys onto the foundation EKS |
 | **seqtoid-workflows** | WDL bioinformatics pipelines | Run on the workflow infra; images via the foundation registries |
@@ -91,8 +98,8 @@ One shared bucket, one state `key` per stack, with the foundation as the master 
 publishes outputs:
 
 ```
-   s3://czid-tfstate-<acct>-<region>      (one shared, versioned, KMS-encrypted bucket)
-   ├── foundation/terraform.tfstate        ← MASTER — owns shared infra, publishes outputs
+   s3://<tfstate-bucket>-<acct>-<region>   (one shared, versioned, KMS-encrypted bucket)
+   ├── foundation/terraform.tfstate         ← MASTER — owns shared infra, publishes outputs
    ├── apps/seqtoid-web/terraform.tfstate
    ├── apps/graphql-federation/terraform.tfstate
    ├── workflow-infra/terraform.tfstate
@@ -112,7 +119,7 @@ model, backup/durability guarantees, and the bootstrap procedure.
 ## Repository layout
 
 ```
-czid-infra/
+.
 ├── infra/state-foundation/
 │   ├── README.md                 # the state model + bootstrap procedure (read this)
 │   ├── backend.hcl               # shared S3 backend config (generated by bootstrap)
@@ -147,8 +154,8 @@ czid-infra/
    where apps/pipelines push and pull images and packages; the app Dockerfiles' build
    hooks (`BASE_REGISTRY` / `NPM_REGISTRY`) are designed to proxy through it.
 5. **OpenBao** — the platform's secrets store.
-6. **Observability** — the platform OTel + Prometheus/Loki/Grafana stack (Linear CZID-14)
-   is hosted on the foundation EKS, so the foundation's own health must be observable first.
+6. **Observability** — the platform OpenTelemetry + Prometheus/Loki/Grafana stack is
+   hosted on the foundation EKS, so the foundation's own health must be observable first.
 
 ---
 
@@ -181,7 +188,7 @@ tofu apply
 - **OpenTofu 1.12.1**, pinned in `.opentofu-version` and read by CI (single source of truth).
 - **`.terraform.lock.hcl` is committed** per stack — providers are pinned and reproducible.
 - **Renovate** keeps providers/actions current (`renovate.json`).
-- **Small, single-concern PRs** traced to a Linear `CZID-NNN` ticket; **validate locally**
+- **Small, single-concern PRs** traced to a tracking ticket; **validate locally**
   (`tofu fmt` + `tofu validate`) before pushing — CI is the final gate, not the dev loop.
 - All work is authored by the team; commits/PRs carry **no AI attribution**.
 
@@ -191,12 +198,12 @@ tofu apply
   (`init -backend=false`) on push/PR.
 - **`security.yml`** — `gitleaks` (secrets, **hard-fail**) + `trivy` + `tflint` + `checkov`
   (config/policy), report-mode ratcheting to hard-fail as findings clear.
-- Deploy/promotion gating (dev→staging→prod, approval on prod) is tracked in
-  Linear CZID-96 / CZID-81; foundation-apply gating is in progress.
+- Deploy/promotion gating (dev→staging→prod, approval on prod) is in progress;
+  foundation-apply gating is being added.
 
 ## Security & hardening
 
-- **Foundation hardening (`security-#001`) — done:** 11 Checkov fixes (KMS key policies,
+- **Foundation hardening — done:** the greenfield Checkov pass (KMS key policies,
   DynamoDB CMK + PITR, S3 EventBridge notifications, DR S3 lifecycle, default-SG lockdown,
   all EKS control-plane log types). `tofu validate` + `fmt` clean.
 - **EKS API endpoint → private** (with an SSM bastion + pull-based GitOps) — decided;
@@ -225,7 +232,7 @@ private EKS control plane, **pull-based GitOps**, and **blue/green** promotion. 
 ## Status
 
 Greenfield and **built**: the state backend + foundation (network / EKS / OpenBao /
-registries / KMS / OIDC / roles) are in place and hardened (`security-#001`), on OpenTofu
-1.12.1 with a green `fmt`+`validate` CI gate. Remaining work is tracked in `TODO.md` and
-Linear (private EKS endpoint slice, residual S3/VPC logging, foundation-apply promotion
-gating). Part of the broader CZ ID platform overhaul.
+registries / KMS / OIDC / roles) are in place and hardened, on OpenTofu 1.12.1 with a
+green `fmt`+`validate` CI gate. Remaining work is tracked in `TODO.md` (private EKS
+endpoint slice, residual S3/VPC logging, foundation-apply promotion gating). Part of the
+broader seqtoid platform overhaul.
