@@ -56,3 +56,18 @@ jobs:
         run: |
           tofu -chdir=${{ matrix.stack }} init -backend=false -input=false
           tofu -chdir=${{ matrix.stack }} validate
+      - name: Verify provider lockfile is committed and current
+        # Pin providers reproducibly: `tofu init` above creates/updates the stack's
+        # .terraform.lock.hcl if it was missing or drifted. Fail on any change so a
+        # malicious/broken provider release can't slip in (CZID-30 — parity with
+        # cypherid-workflow-infra's validate.yml).
+        run: |
+          lock="${{ matrix.stack }}/.terraform.lock.hcl"
+          if [ ! -f "$lock" ]; then
+            echo "::error::$lock is missing — run 'tofu -chdir=${{ matrix.stack }} providers lock -platform=linux_amd64 -platform=darwin_amd64' and commit it."
+            exit 1
+          fi
+          if ! git diff --exit-code -- "$lock"; then
+            echo "::error::$lock drifted during init — re-run 'tofu providers lock' and commit the result."
+            exit 1
+          fi
