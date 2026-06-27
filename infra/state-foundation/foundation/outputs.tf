@@ -88,3 +88,9 @@ output "region" {
 output "account_id" {
   value = local.account_id
 }
+
+# CZID #341: connect to the private EKS control plane via the SSM bastion:
+#   aws ssm start-session --target $(tofu output -raw eks_ssm_bastion_instance_id)
+output "eks_ssm_bastion_instance_id" {
+  value = module.eks_ssm_bastion.bastion_instance_id
+}

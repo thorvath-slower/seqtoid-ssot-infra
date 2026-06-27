@@ -96,13 +96,25 @@ module "eks" {
   private_subnet_ids     = module.network.private_subnet_ids
   public_subnet_ids      = module.network.public_subnet_ids
   kms_key_arn            = aws_kms_key.app.arn
-  endpoint_public_access = true
+  endpoint_public_access = false # CZID #341 (CKV_AWS_38/39): private control plane — reach via the SSM bastion below
   public_access_cidrs    = var.eks_public_access_cidrs
   node_instance_types    = var.eks_node_instance_types
   node_min_size          = var.eks_node_min_size
   node_max_size          = var.eks_node_max_size
   node_desired_size      = var.eks_node_desired_size
   tags                   = local.tags
+}
+
+# CZID #341: SSM bastion — the path to the now-private foundation EKS API. Must exist with the flip above
+# (endpoint_public_access=false) or the control plane is unreachable. Connect:
+#   aws ssm start-session --target $(tofu output -raw eks_ssm_bastion_instance_id)
+module "eks_ssm_bastion" {
+  source                    = "./modules/eks-ssm-bastion"
+  name                      = local.cluster_name
+  vpc_id                    = module.network.vpc_id
+  subnet_id                 = module.network.private_subnet_ids[0]
+  cluster_security_group_id = module.eks.cluster_security_group_id
+  tags                      = local.tags
 }
 
 module "openbao" {
