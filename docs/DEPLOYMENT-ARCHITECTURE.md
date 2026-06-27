@@ -6,6 +6,14 @@ a multi-tenant **SaaS**, a fleet-managed **MSP** offering, and a self-hostable
 **6** (artifacts), **7** (provisioning), **8** (portability), **9**
 (observability), **10** (multi-tenancy).
 
+> **⚠️ DB DIRECTION UPDATED 2026-06-27 (CZID-320): native MySQL 8.** The **Postgres / CloudNativePG / RLS**
+> references throughout this doc are **SUPERSEDED** — they predate the MySQL-8 decision. The relational-DB
+> adapter is now **Aurora/RDS MySQL 8** (SaaS), not Postgres. Critically, the **multi-tenancy model below
+> assumes Postgres Row-Level Security**, which MySQL 8 does **not** have natively — so the SaaS tenancy
+> approach needs revisiting (app-level tenant scoping / views / a per-tenant schema or DB, instead of RLS).
+> Treat the DB and tenancy specifics as out-of-date pending a revision; the three-deploy-model structure
+> (ports & adapters, GitOps, blue/green) still holds.
+
 ---
 
 ## 1. The three models on one axis
