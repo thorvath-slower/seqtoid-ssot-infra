@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   validate:
-    name: tofu fmt + validate
+    name: terraform fmt + validate
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -20,16 +20,19 @@ jobs:
           - envs/dev/example
     steps:
       - uses: actions/checkout@v5
-      - name: Setup OpenTofu
-        uses: opentofu/setup-opentofu@v2 # node24 runtime
+      - name: Read Terraform version (SSOT = .terraform-version)
+        id: tfver
+        run: echo "version=$(cat .terraform-version)" >> "$GITHUB_OUTPUT"
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
-          tofu_version_file: .opentofu-version # version SSOT
-          tofu_wrapper: false
-      - name: tofu fmt -check
-        run: tofu fmt -check -recursive
-      - name: tofu validate (${{ matrix.stack }})
+          terraform_version: ${{ steps.tfver.outputs.version }}
+          terraform_wrapper: false
+      - name: terraform fmt -check
+        run: terraform fmt -check -recursive
+      - name: terraform validate (${{ matrix.stack }})
         working-directory: ${{ matrix.stack }}
         # -backend=false: validate config without touching the real S3 backend.
         run: |
-          tofu init -input=false -backend=false
-          tofu validate
+          terraform init -input=false -backend=false
+          terraform validate
