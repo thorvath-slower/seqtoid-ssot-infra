@@ -39,7 +39,7 @@ Everything the overhaul changed, organized by area, with ticket references. This
 
 ## G. Database & API direction (planning)
 - ⬜ seqtoid-web Aurora MySQL → **PostgreSQL** (customer-driven, behavior-preserving, tests-first; improvement-#005 / CZID-21 live cutover 🅱️).
-- ⬜ API simplification spike — evaluate collapsing the GraphQL federation layer into Rails (CZID-129 → Phase 1-4 CZID-132–136), decision-gated.
+- ✅ API simplification — the GraphQL federation layer was collapsed into Rails-native `/graphql` (CZID-129 spike → Phases 1–4 CZID-132–136 + the ports 285/302–311). The `seqtoid-graphql-federation-server` is **decommissioned**; Rails serves `/graphql` directly (contract locked by a schema test, CZID-158).
 
 ## H. Dependency sourcing (planning)
 - ⬜ Single **FOSS** internal source for all build/runtime deps to avoid intermittent internet-dependency failures (CZID-205 spike → CZID-23 stand-up 🅱️; CZID-86 egress allowlist; CZID-10 golden image/offline mirror).
