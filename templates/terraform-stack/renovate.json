@@ -7,11 +7,11 @@
   "labels": ["dependencies"],
   "customManagers": [
     {
-      "description": "Track the OpenTofu version pinned in .opentofu-version",
+      "description": "Track the Terraform version pinned in .terraform-version",
       "customType": "regex",
-      "managerFilePatterns": ["/^\\.opentofu-version$/"],
+      "managerFilePatterns": ["/^\\.terraform-version$/"],
       "matchStrings": ["(?<currentValue>.*)"],
-      "depNameTemplate": "opentofu/opentofu",
+      "depNameTemplate": "hashicorp/terraform",
       "datasourceTemplate": "github-releases"
     }
   ]

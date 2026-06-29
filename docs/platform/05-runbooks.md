@@ -17,22 +17,22 @@ git checkout main && git reset --hard origin/main
 
 ---
 
-## Bump the OpenTofu version
-1. Edit `.opentofu-version` (e.g. `1.12.1` → `1.13.0`) in the repo.
+## Bump the Terraform version
+1. Edit `.terraform-version` (e.g. `1.12.1` → `1.13.0`) in the repo.
 2. Regenerate the provider lockfile (next runbook) — provider constraints may resolve differently.
-3. `tofu init && tofu validate` locally; the CI `tofu fmt + validate` gate confirms it.
-4. Repeat per IaC repo (each has its own `.opentofu-version`). Nothing else hardcodes the version — `setup-opentofu@v2` reads the file.
+3. `terraform init && terraform validate` locally; the CI `terraform fmt + validate` gate confirms it.
+4. Repeat per IaC repo (each has its own `.terraform-version`). Nothing else hardcodes the version — `setup-terraform@v2` reads the file.
 
 ## Regenerate a provider lockfile
 ```bash
 cd <stack-or-repo-root>
 # (workflow-infra: run codegen first) make package-lambdas
-tofu providers lock \
+terraform providers lock \
   -platform=linux_amd64 \   # CI runner
   -platform=darwin_amd64    # add darwin_arm64 / linux_arm64 only if every provider has that build
 git add .terraform.lock.hcl
 # verify it's stable:
-tofu init -input=false      # must report "no need for changes"
+terraform init -input=false      # must report "no need for changes"
 ```
 Commit the lockfile. Confirm CI no longer reports lockfile drift.
 
@@ -40,9 +40,9 @@ Commit the lockfile. Confirm CI no longer reports lockfile drift.
 1. **Find every instance:** `grep -rn "uses: <owner>/<action>@" */.github/workflows/`.
 2. **Check the target runtime:** read the new version's `action.yml` `runs.using` (must be `node24`, `composite`, or `docker` — not node16/20). Fetch it from the action's repo at the tag.
 3. **One PR per repo** (single concern): bump `@old` → `@new` at every call site in that repo. Keep the pin identical across call sites (SSOT).
-4. Leave any version file (e.g. `tofu_version_file`) untouched — only the action ref changes.
+4. Leave any version file (e.g. `terraform_version`) untouched — only the action ref changes.
 5. Validate: the repo's gate re-runs; confirm the deprecation annotation is gone.
-- *Worked example:* `opentofu/setup-opentofu@v1` (node16/20) → `@v2` (node24) across the 3 IaC repos (CZID-199).
+- *Worked example:* `hashicorp/setup-terraform@v1` (node16/20) → `@v2` (node24) across the 3 IaC repos (CZID-199).
 
 ## Refresh an EOL base image (Docker)
 1. Find the current pin: `grep -rn "^FROM" <repo>/**/Dockerfile`.

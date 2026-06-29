@@ -7,18 +7,18 @@ This is the heart of "how we maintain the platform." Almost every maintenance ta
 
 | Toolchain | SSOT file | Read by |
 |---|---|---|
-| OpenTofu | `.opentofu-version` (1.12.1) | `setup-opentofu@v2` (`tofu_version_file`) |
+| Terraform | `.terraform-version` (1.12.1) | `setup-terraform@v2` (`terraform_version`) |
 | Node.js | `.node-version` (20.20.2) | `setup-node` (`node-version-file`), Dockerfiles, `bin/setup-ci` |
 | Ruby | `.ruby-version` (3.3.6) | `setup-ruby`, Docker base |
 | Python | `.python-version` (3.10) | `setup-python` (`python-version-file`) |
-| Providers (OpenTofu) | `_shared/versions.tf` + committed `.terraform.lock.hcl` | `tofu init` |
+| Providers (Terraform) | `_shared/versions.tf` + committed `.terraform.lock.hcl` | `terraform init` |
 | App deps | `Gemfile.lock`, `package-lock.json`, `requirements*.txt` | bundler / npm / pip |
 
 **Why it matters:** a version hardcoded in a workflow (e.g. `node-version: 20`) silently drifts from `.node-version` and breaks the SSOT. If you find one, point it back at the file. (Several of these were fixed in the SSOT sweep — CZID-140 and children.)
 
 ## Lockfiles are committed
 - Commit `.terraform.lock.hcl`, `Gemfile.lock`, `package-lock.json`. They make builds reproducible and stop a bad transitive release slipping in.
-- CI installs from the lock (`tofu init` without `-upgrade`, `npm ci`, `bundle install --frozen`), never re-resolving.
+- CI installs from the lock (`terraform init` without `-upgrade`, `npm ci`, `bundle install --frozen`), never re-resolving.
 - To add ONE npm dep without floating the whole tree: `npm ci` first (lock-respecting), then `npm install <dep>`.
 
 ## Container images are digest-pinned

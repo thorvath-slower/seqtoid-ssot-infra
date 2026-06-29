@@ -1,6 +1,6 @@
 # Shared state backend + foundation inheritance
 
-A single, backed-up home for **all** OpenTofu/Terraform state across the CZ ID
+A single, backed-up home for **all** Terraform/Terraform state across the CZ ID
 repos, with one **foundation** state that every other stack inherits from.
 
 ## The model (and why it isn't one giant state file)
@@ -39,7 +39,7 @@ contention, a huge blast radius, and slow plans. Instead:
 - **Encryption** — SSE-KMS with a dedicated, rotated key.
 - **TLS-only + public access fully blocked.**
 - **`prevent_destroy`** on the bucket, lock table, and KMS key.
-- **Locking** — DynamoDB table (works everywhere) *or* OpenTofu ≥ 1.10 native S3
+- **Locking** — DynamoDB table (works everywhere) *or* Terraform ≥ 1.10 native S3
   locking (`use_lockfile = true`, no DynamoDB).
 - **Optional DR** — enable S3 Cross-Region Replication to a second-region bucket
   for full region-loss protection (snippet at the bottom).
@@ -51,22 +51,22 @@ runs with a **local** backend first.
 
 ```bash
 cd bootstrap
-tofu init                      # local backend
-tofu apply                     # creates bucket + lock table + KMS key
-tofu output backend_hcl        # copy into ../backend.hcl
-# (optional) add a backend "s3" block and: tofu init -migrate-state
+terraform init                      # local backend
+terraform apply                     # creates bucket + lock table + KMS key
+terraform output backend_hcl        # copy into ../backend.hcl
+# (optional) add a backend "s3" block and: terraform init -migrate-state
 ```
 
 Then every other stack initializes against the shared backend:
 
 ```bash
 cd ../foundation
-tofu init -backend-config=../backend.hcl
-tofu apply                     # stands up shared infra, publishes outputs
+terraform init -backend-config=../backend.hcl
+terraform apply                     # stands up shared infra, publishes outputs
 
 cd ../consumers/seqtoid-web
-tofu init -backend-config=../../backend.hcl
-tofu apply                     # inherits foundation outputs
+terraform init -backend-config=../../backend.hcl
+terraform apply                     # inherits foundation outputs
 ```
 
 ## Portability (cloud vs appliance)
@@ -114,7 +114,7 @@ clean with no destination required. Turn it on with:
 
 ```bash
 cd bootstrap
-tofu apply -var enable_dr=true -var dr_region=us-east-1
+terraform apply -var enable_dr=true -var dr_region=us-east-1
 ```
 
 That stands up a versioned, encrypted, locked-down replica bucket + KMS key in

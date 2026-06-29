@@ -15,17 +15,17 @@
   "customManagers": [
     {
       "customType": "regex",
-      "description": "Track the OpenTofu version pinned in .opentofu-version.",
-      "fileMatch": ["(^|/)\\.opentofu-version$"],
+      "description": "Track the Terraform version pinned in .terraform-version.",
+      "fileMatch": ["(^|/)\\.terraform-version$"],
       "matchStrings": ["^(?<currentValue>\\S+)"],
-      "depNameTemplate": "opentofu/opentofu",
+      "depNameTemplate": "hashicorp/terraform",
       "datasourceTemplate": "github-releases",
       "extractVersionTemplate": "^v(?<version>.+)$"
     }
   ],
   "packageRules": [
     {
-      "description": "Group Terraform/OpenTofu provider + module updates across the foundation stacks.",
+      "description": "Group Terraform/Terraform provider + module updates across the foundation stacks.",
       "matchManagers": ["terraform"],
       "groupName": "terraform providers"
     },

@@ -7,9 +7,9 @@
 # After apply, you may optionally migrate this stack's state into the bucket.
 #
 #   cd bootstrap
-#   tofu init            # local backend
-#   tofu apply           # creates bucket + lock table + KMS key
-#   # (optional) add the backend "s3" block below and: tofu init -migrate-state
+#   terraform init            # local backend
+#   terraform apply           # creates bucket + lock table + KMS key
+#   # (optional) add the backend "s3" block below and: terraform init -migrate-state
 # =============================================================================
 
 terraform {
@@ -33,7 +33,7 @@ locals {
 
 # --- KMS key used to encrypt every state object ------------------------------
 resource "aws_kms_key" "tfstate" {
-  description             = "Encrypts CZ ID OpenTofu/Terraform state"
+  description             = "Encrypts CZ ID Terraform state"
   deletion_window_in_days = 30
   enable_key_rotation     = true
   # Explicit key policy (CKV2_AWS_64): grant the account root full control so
@@ -126,8 +126,8 @@ resource "aws_s3_bucket_policy" "tfstate" {
 }
 
 # --- State locking ------------------------------------------------------------
-# Classic, works on every Terraform/OpenTofu version.
-# NOTE: OpenTofu >= 1.10 can lock natively in S3 (set `use_lockfile = true` in
+# Classic, works on every Terraform/Terraform version.
+# NOTE: Terraform >= 1.10 can lock natively in S3 (set `use_lockfile = true` in
 # the backend and drop this table). Kept here for broad compatibility.
 resource "aws_dynamodb_table" "tflock" {
   name         = local.lock_table

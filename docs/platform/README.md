@@ -12,7 +12,7 @@ This is the operator's guide to the CZ ID platform **after the modernization ove
 ## Read in this order
 1. **[01 — Platform overview](01-platform-overview.md)** — the repos, what each does, how they fit together.
 2. **[02 — Working conventions](02-working-conventions.md)** — governance, forks, PRs, the Linear lifecycle, Bucket A vs B. **Read before making any change.**
-3. **[03 — OpenTofu / IaC](03-opentofu-iac.md)** — how we run infrastructure-as-code, the state foundation, accounts/envs, validate→plan→apply.
+3. **[03 — Terraform / IaC](03-terraform-iac.md)** — how we run infrastructure-as-code, the state foundation, accounts/envs, validate→plan→apply.
 4. **[04 — Dependencies & versions](04-dependencies-and-versions.md)** — the single-source-of-truth (SSOT) model and how we upgrade anything.
 5. **[05 — Runbooks](05-runbooks.md)** — copy-paste procedures for the common maintenance tasks.
 6. **[06 — Local validation](06-local-validation.md)** — how to test changes locally before pushing (CI is the final gate, not the dev loop).
@@ -27,6 +27,6 @@ This is the operator's guide to the CZ ID platform **after the modernization ove
 
 ## Glossary
 - **SSOT** — Single Source Of Truth: a version/value defined in exactly one place that everything else reads.
-- **State foundation** — the bootstrapped S3 backend (`czid-tfstate-<account>-<region>`) that holds all OpenTofu state. Lives in `czid-infra`.
+- **State foundation** — the bootstrapped S3 backend (`czid-tfstate-<account>-<region>`) that holds all Terraform state. Lives in `czid-infra`.
 - **Bucket A / Bucket B** — work that can be done in this dev environment (A) vs. work that needs live AWS / admin / credentials (B). See [02](02-working-conventions.md).
-- **Component / stack** — one independently-applied unit of OpenTofu (e.g. `envs/dev/db`).
+- **Component / stack** — one independently-applied unit of Terraform (e.g. `envs/dev/db`).

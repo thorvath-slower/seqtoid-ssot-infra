@@ -6,7 +6,7 @@ name: terraform-ci
 # foundation is small, so a flat validate matrix over its root stacks is enough —
 # no per-env (dev/staging/prod) bucketing. validate runs with -backend=false, so no
 # cloud creds or remote state are needed; this is a pure correctness gate, safe to
-# run on every PR. (Converted from OpenTofu to native Terraform per customer req.)
+# run on every PR.
 
 on:
   push:

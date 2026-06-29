@@ -1,6 +1,6 @@
 # seqtoid — Infrastructure Foundation (Infrastructure-as-Code)
 
-The **foundation** layer of the seqtoid platform: the [OpenTofu](https://opentofu.org)
+The **foundation** layer of the seqtoid platform: the [Terraform](https://terraform.org)
 Infrastructure-as-Code that provisions the shared, long-lived AWS infrastructure —
 the remote-state backend, network, EKS cluster, secrets store (OpenBao), and
 container/package registries — that **every other seqtoid repo builds on top of**.
@@ -21,11 +21,11 @@ container/package registries — that **every other seqtoid repo builds on top o
 
 ## Why this repo exists
 
-The legacy platform had infrastructure and OpenTofu/Terraform state scattered across
+The legacy platform had infrastructure and Terraform/Terraform state scattered across
 repos with no single, backed-up source of truth and lots of duplicated shared infra.
 This repo fixes that by establishing **one foundation**:
 
-- **One shared, backed-up state backend** — every repo's OpenTofu state lives in a
+- **One shared, backed-up state backend** — every repo's Terraform state lives in a
   single versioned, encrypted S3 bucket (one `key` per stack), so there's one place
   to secure, version, and back up.
 - **One master "foundation" state** — owns the shared, long-lived infra (network,
@@ -73,7 +73,7 @@ flowchart TB
 layer that creates the home for all state:
 - Versioned, **SSE-KMS-encrypted**, TLS-only, public-access-blocked S3 bucket
   (`prevent_destroy`), bucket versioning = the backup (configurable retention).
-- **Locking** — DynamoDB table *or* OpenTofu ≥ 1.10 native S3 locking (`use_lockfile`).
+- **Locking** — DynamoDB table *or* Terraform ≥ 1.10 native S3 locking (`use_lockfile`).
 - Optional **DR** — S3 Cross-Region Replication to a second region.
 
 **Foundation** (`infra/state-foundation/foundation/`) — the shared infra, as modules:
@@ -130,8 +130,8 @@ model, backup/durability guarantees, and the bootstrap procedure.
 │   └── consumers/seqtoid-web/    # EXAMPLE: how a downstream stack inherits foundation outputs
 ├── docs/                         # architecture, security findings & hardening (see below)
 ├── specs/                        # spec-kit specs for individual change slices
-├── .github/workflows/            # tofu-ci.yml (fmt+validate gate) · security.yml (scanners)
-├── .opentofu-version             # pinned toolchain (1.12.1) — read by CI
+├── .github/workflows/            # terraform-ci.yml (fmt+validate gate) · security.yml (scanners)
+├── .terraform-version             # pinned toolchain (1.12.1) — read by CI
 ├── .trivyignore                  # audited security-scan exceptions
 ├── renovate.json                 # automated dependency updates
 └── TODO.md                       # outstanding foundation work
@@ -142,7 +142,7 @@ model, backup/durability guarantees, and the bootstrap procedure.
 ## How it interfaces with the other repos
 
 1. **Shared state backend** — `bootstrap/` creates the S3 bucket + locking that holds
-   *every* repo's OpenTofu state (one key per stack).
+   *every* repo's Terraform state (one key per stack).
 2. **Foundation outputs = the contract** — `foundation/outputs.tf` exposes VPC, EKS,
    registries, KMS, OIDC, and role ARNs. Downstream stacks read them with
    `data "terraform_remote_state" "foundation"` — see the worked example in
@@ -161,21 +161,21 @@ model, backup/durability guarantees, and the bootstrap procedure.
 
 ## Getting started
 
-**Prerequisites:** OpenTofu **1.12.1** (pinned in `.opentofu-version`; e.g.
+**Prerequisites:** Terraform **1.12.1** (pinned in `.terraform-version`; e.g.
 `tofuenv install`), AWS credentials for the target account.
 
 ```bash
 # 1) One-time: bootstrap the shared state backend (runs on a LOCAL backend)
 cd infra/state-foundation/bootstrap
-tofu init
-tofu apply
-tofu output backend_hcl > ../backend.hcl     # copy the generated backend config
+terraform init
+terraform apply
+terraform output backend_hcl > ../backend.hcl     # copy the generated backend config
 
 # 2) The foundation (master state)
 cd ../foundation
-tofu init -backend-config=../backend.hcl
-tofu plan      # review
-tofu apply
+terraform init -backend-config=../backend.hcl
+terraform plan      # review
+terraform apply
 
 # 3) Any downstream stack then inits against the shared backend and reads
 #    foundation outputs via terraform_remote_state (see consumers/seqtoid-web/).
@@ -185,16 +185,16 @@ tofu apply
 
 ## Toolchain & conventions
 
-- **OpenTofu 1.12.1**, pinned in `.opentofu-version` and read by CI (single source of truth).
+- **Terraform 1.12.1**, pinned in `.terraform-version` and read by CI (single source of truth).
 - **`.terraform.lock.hcl` is committed** per stack — providers are pinned and reproducible.
 - **Renovate** keeps providers/actions current (`renovate.json`).
 - **Small, single-concern PRs** traced to a tracking ticket; **validate locally**
-  (`tofu fmt` + `tofu validate`) before pushing — CI is the final gate, not the dev loop.
+  (`terraform fmt` + `terraform validate`) before pushing — CI is the final gate, not the dev loop.
 - All work is authored by the team; commits/PRs carry **no AI attribution**.
 
 ## CI/CD
 
-- **`tofu-ci.yml`** — `tofu fmt -check -recursive` + per-stack `tofu validate`
+- **`terraform-ci.yml`** — `terraform fmt -check -recursive` + per-stack `terraform validate`
   (`init -backend=false`) on push/PR.
 - **`security.yml`** — `gitleaks` (secrets, **hard-fail**) + `trivy` + `tflint` + `checkov`
   (config/policy), report-mode ratcheting to hard-fail as findings clear.
@@ -205,7 +205,7 @@ tofu apply
 
 - **Foundation hardening — done:** the greenfield Checkov pass (KMS key policies,
   DynamoDB CMK + PITR, S3 EventBridge notifications, DR S3 lifecycle, default-SG lockdown,
-  all EKS control-plane log types). `tofu validate` + `fmt` clean.
+  all EKS control-plane log types). `terraform validate` + `fmt` clean.
 - **EKS API endpoint → private** (with an SSM bastion + pull-based GitOps) — decided;
   in progress. The user-facing data plane stays on a public ALB Ingress.
 - Findings and the hardening trail live in `docs/` (see below); audited scan exceptions
@@ -232,7 +232,7 @@ private EKS control plane, **pull-based GitOps**, and **blue/green** promotion. 
 ## Status
 
 Greenfield and **built**: the state backend + foundation (network / EKS / OpenBao /
-registries / KMS / OIDC / roles) are in place and hardened, on OpenTofu 1.12.1 with a
+registries / KMS / OIDC / roles) are in place and hardened, on Terraform 1.12.1 with a
 green `fmt`+`validate` CI gate. Remaining work is tracked in `TODO.md` (private EKS
 endpoint slice, residual S3/VPC logging, foundation-apply promotion gating). Part of the
 broader seqtoid platform overhaul.
