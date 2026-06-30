@@ -6,6 +6,13 @@ a multi-tenant **SaaS**, a fleet-managed **MSP** offering, and a self-hostable
 **6** (artifacts), **7** (provisioning), **8** (portability), **9**
 (observability), **10** (multi-tenancy).
 
+> **DB DIRECTION: native MySQL 8 (CZID-320; revised 2026-06-27).** This doc has been updated for MySQL 8 —
+> the relational-DB adapter is **Aurora/RDS MySQL 8** (SaaS) / in-cluster MySQL (appliance), and the SaaS
+> multi-tenancy model now uses **application-level tenant scoping** (MySQL 8 has no native Postgres-style
+> Row-Level Security; see §3 for the approach + the schema-/DB-per-tenant fallback). The three-deploy-model
+> structure (ports & adapters, GitOps, blue/green) is unchanged. A few incidental "RLS" labels below are
+> shorthand for that now-app-level tenancy concept.
+
 ---
 
 ## 1. The three models on one axis
@@ -18,7 +25,7 @@ must serve all three; the difference is *where the boundaries are drawn*.
 | Who operates it | Us | Us (managed), per customer | The customer |
 | Isolation boundary | **Logical** (row-level) | **Instance** (per-customer stack) | **Physical** (their infra) |
 | Infra | One shared cloud estate | Many silos + central control plane | One self-contained node/cluster |
-| Tenancy mode | `pooled` (RLS) | `single` per instance | `single` |
+| Tenancy mode | `pooled` (app-scoped) | `single` per instance | `single` |
 | Cost / efficiency | Highest | Medium | N/A (customer pays infra) |
 | Data sovereignty | Ours | Configurable | Customer's |
 | Connectivity | Online | Online | **Air-gap capable** |
@@ -40,7 +47,7 @@ must serve all three; the difference is *where the boundaries are drawn*.
             ┌───────────────────────────┼───────────────────────────┐
             ▼                            ▼                           ▼
    Adapter set: AWS-native      Adapter set: AWS-native      Adapter set: portable
-   tenancy: pooled (RLS)        tenancy: single (per silo)   tenancy: single
+   tenancy: pooled (app-scoped)        tenancy: single (per silo)   tenancy: single
             │                            │                           │
             ▼                            ▼                           ▼
    Shared EKS + Argo CD         Fleet: Argo CD app-of-apps    k3s + Argo CD/Helm
@@ -57,7 +64,7 @@ portable one (appliance). The app and charts target the *port*, never the vendor
 |---|---|---|---|
 | Orchestration | EKS | **k3s** (single binary) | Kubernetes API |
 | Object storage | S3 | **MinIO** | S3 API (unchanged) |
-| Relational DB | RDS/Aurora **Postgres** | **CloudNativePG** (in-cluster) | Postgres wire |
+| Relational DB | RDS/Aurora **MySQL 8** | in-cluster **MySQL** (operator) | MySQL wire |
 | Secrets | OpenBao + SSM/chamber | **OpenBao** (in-cluster) | OpenBao / External Secrets |
 | Container registry | ECR | in-cluster registry / **Harbor** | OCI |
 | Package proxy | CodeArtifact | **Artifactory / offline mirror** | npm/pypi/maven endpoints |
@@ -88,16 +95,22 @@ blue/green + smoke-gated promotion.
 A single `TENANCY_MODE = pooled | single`. **Single-tenant is a degenerate case
 of pooled** (the tenant id is fixed), so one code path serves all models.
 
-- **`pooled` (SaaS):** shared Postgres with **Row-Level Security**. Every
-  tenant-owned row carries `tenant_id`; RLS policies enforce it; the Rails app
-  sets `SET app.current_tenant = '<id>'` per request (from the Auth0
-  org/claim). Object storage = per-tenant S3 prefix (+ optional per-tenant KMS);
-  pipeline runs tagged by tenant for isolation + cost attribution. **Isolation
-  must be *proven*** (negative tests: tenant A can never read/influence tenant
-  B) before ship — the slice-10 mandate.
-- **`single` (MSP/Appliance):** the whole instance is one tenant. No RLS needed;
-  isolation is the instance/account/physical boundary (strongest). The same RLS
-  code runs harmlessly with a single fixed tenant.
+- **`pooled` (SaaS):** shared **MySQL 8** with **application-level tenant scoping**
+  (MySQL 8 has **no native Row-Level Security** — the enforcement that Postgres RLS
+  would do at the DB layer moves into the app). Every tenant-owned row carries
+  `tenant_id`; a **mandatory default scope / centralized tenant-aware query layer**
+  in the Rails app filters every read by the current tenant (set per request from the
+  Auth0 org/claim) and stamps every write. Object storage = per-tenant S3 prefix
+  (+ optional per-tenant KMS); pipeline runs tagged by tenant for isolation + cost
+  attribution. **Because enforcement is in the app, not the DB, isolation must be
+  *proven* even more rigorously** (automated negative tests: tenant A can never
+  read/influence tenant B; a single choke-point scoping layer so no query can bypass
+  it) before ship — the slice-10 mandate. For the most sensitive data,
+  **schema-per-tenant or DB-per-tenant** is the stronger-isolation fallback (MySQL 8
+  supports multiple databases natively).
+- **`single` (MSP/Appliance):** the whole instance is one tenant. No scoping needed;
+  isolation is the instance/account/physical boundary (strongest). The same
+  tenant-scoping code runs harmlessly with a single fixed tenant.
 
 Auth: Auth0 **Organizations** map 1:1 to tenants in SaaS; in single-tenant they
 collapse to one org (or a self-hosted OIDC in the appliance).
@@ -133,7 +146,7 @@ Per-customer **dedicated stack** (`single` profile) — strong isolation — plu
 The "simple binary on customer infra," air-gap capable:
 - **Substrate:** **k3s** — Kubernetes as a single binary; one node or a small
   HA set. (k3s *is* the "binary"; the appliance wraps it.)
-- **Everything in-cluster:** CloudNativePG, MinIO, OpenBao, in-cluster registry,
+- **Everything in-cluster:** in-cluster MySQL (operator), MinIO, OpenBao, in-cluster registry,
   Argo CD/Rollouts, Traefik ingress, Grafana/Loki — all from the portable
   adapter set, one umbrella chart.
 - **Offline supply chain:** a bundled, **signed** image + package mirror
@@ -155,14 +168,14 @@ whole abstraction.*
    **Argo Workflows**, **Cromwell**, or **miniwdl's k8s backend**. This needs a
    spike; it gates the appliance and the MSP silo. Define a **WDL-runner port**
    so the app dispatches workflows the same way regardless of backend.
-2. **Multi-tenant isolation proof (SaaS).** RLS is necessary but must be
+2. **Multi-tenant isolation proof (SaaS).** App-level tenant scoping is necessary but must be
    *tested adversarially* — automated negative tests + a review gate before any
    multi-tenant data lands. "Prove isolation before ship."
 3. **Air-gapped supply chain.** A complete, signed offline mirror of every image
    + package (extends `bug-#012` / slice 6). Renovate/Trivy need mirrored DBs.
 4. **Per-tenant cost attribution & metering (SaaS/MSP).** Tag every
    resource/job by tenant; aggregate for quotas + billing.
-5. **Stateful data portability.** Postgres + object storage backup/restore that
+5. **Stateful data portability.** MySQL + object storage backup/restore that
    works identically across RDS↔CNPG and S3↔MinIO (for migrations + appliance
    updates).
 
@@ -239,5 +252,5 @@ parallel on the SaaS branch.
   default flip must land *with* the bastion to avoid a control-plane lockout.
 - **Digest-pinned, soon-to-be-signed images** (`bug-#012`) — the basis for the
   golden-image + offline-mirror supply chain.
-- **Postgres** (`improvement-#005`) — already off the AWS-only Aurora-MySQL path,
-  which makes the RDS↔CloudNativePG swap realistic.
+- **MySQL 8** (`CZID-320`) — the forward DB; the SaaS adapter is Aurora/RDS MySQL 8, which makes the
+  RDS↔in-cluster-MySQL (operator) swap for the appliance realistic.
