@@ -3,12 +3,12 @@
 .DEFAULT_GOAL := help
 
 .PHONY: check
-check: ## Run all CI checks locally (tofu fmt + validate + security scanners)
+check: ## Run all CI checks locally (terraform fmt + validate + security scanners)
 	@./bin/check
 
 .PHONY: fmt
-fmt: ## Auto-format the IaC (tofu fmt -recursive infra/)
-	@tofu fmt -recursive infra/
+fmt: ## Auto-format the IaC (terraform fmt -recursive infra/)
+	@terraform fmt -recursive infra/
 
 .PHONY: help
 help: ## Show this help

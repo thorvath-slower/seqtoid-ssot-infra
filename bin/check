@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Run czid-infra's CI checks locally — mirrors .github/workflows/{tofu-ci,security}.yml so that a green
-# `make check` here predicts a green CI (local == CI, CZID-311). The tofu fmt+validate gate is the core
+# Run czid-infra's CI checks locally — mirrors .github/workflows/{terraform-ci,security}.yml so that a green
+# `make check` here predicts a green CI (local == CI, CZID-311). The terraform fmt+validate gate is the core
 # check and is required; the heavier security scanners are run if installed and skipped-with-a-note if not,
 # so the IaC gate is always usable. Install the scanners to run the full security gate locally:
-#   brew install opentofu trivy tflint gitleaks
+#   brew install terraform trivy tflint gitleaks
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
-# Root stacks — keep in sync with the validate matrix in .github/workflows/tofu-ci.yml.
+# Root stacks — keep in sync with the validate matrix in .github/workflows/terraform-ci.yml.
 STACKS=(
   infra/state-foundation/bootstrap
   infra/state-foundation/foundation
@@ -19,18 +19,18 @@ skipped=0
 have() { command -v "$1" >/dev/null 2>&1; }
 hdr()  { printf '\n\033[1m== %s ==\033[0m\n' "$1"; }
 
-hdr "tofu fmt -check"
-if have tofu; then
-  tofu fmt -check -recursive infra/ && echo "  ✓ formatted" || { echo "  ✗ run: tofu fmt -recursive infra/"; fail=1; }
+hdr "terraform fmt -check"
+if have terraform; then
+  terraform fmt -check -recursive infra/ && echo "  ✓ formatted" || { echo "  ✗ run: terraform fmt -recursive infra/"; fail=1; }
 else
-  echo "  ⚠ tofu not installed — cannot run the IaC gate (brew install opentofu)"; fail=1
+  echo "  ⚠ terraform not installed — cannot run the IaC gate (brew install terraform)"; fail=1
 fi
 
-hdr "tofu validate (per stack, -backend=false)"
-if have tofu; then
+hdr "terraform validate (per stack, -backend=false)"
+if have terraform; then
   for s in "${STACKS[@]}"; do
     printf '  -- %s\n' "$s"
-    if tofu -chdir="$s" init -backend=false -input=false >/dev/null 2>&1 && tofu -chdir="$s" validate >/dev/null; then
+    if terraform -chdir="$s" init -backend=false -input=false >/dev/null 2>&1 && terraform -chdir="$s" validate >/dev/null; then
       echo "     ✓"
     else
       echo "     ✗ validate failed (re-run without the redirect to see why)"; fail=1
