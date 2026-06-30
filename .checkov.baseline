@@ -1,0 +1,28 @@
+{
+    "failed_checks": [
+        {
+            "file": "/.github/workflows/security.yml",
+            "findings": [
+                {
+                    "resource": "on(security)",
+                    "check_ids": [
+                        "CKV2_GHA_1",
+                        "CKV_GHA_7"
+                    ]
+                }
+            ]
+        },
+        {
+            "file": "/infra/state-foundation/foundation/modules/eks/main.tf",
+            "findings": [
+                {
+                    "resource": "module.eks.aws_eks_cluster.this",
+                    "check_ids": [
+                        "CKV_AWS_38",
+                        "CKV_AWS_39"
+                    ]
+                }
+            ]
+        }
+    ]
+}
