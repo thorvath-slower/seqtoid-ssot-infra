@@ -18,7 +18,7 @@ and how to triage what they find. Introduced in `improvement-#010`.
 |------|---------|---------------|------|
 | **gitleaks** | MIT | Committed secrets, across **git history** | Catch leaked credentials |
 | **Trivy** | Apache-2.0 | CVEs (deps), **IaC misconfig**, secrets, SBOM | Broad security scanner |
-| **tflint** | MPL-2.0 | Terraform/OpenTofu correctness + provider best-practice | Lint (not security) |
+| **tflint** | MPL-2.0 | Terraform/Terraform correctness + provider best-practice | Lint (not security) |
 | **Checkov** | Apache-2.0 | Deep IaC policy-as-code (1000+ policies) | Exhaustive policy pass |
 
 All four are free/OSS. There is **no paid tier required**; Aqua (Trivy) and

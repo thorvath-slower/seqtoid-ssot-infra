@@ -5,7 +5,7 @@ name: security
 #   - gitleaks : secret scanning over git history (hard-fail on any leak)
 #   - trivy    : vuln + IaC misconfig + secret (hard-fail on HIGH/CRITICAL;
 #                triaged exceptions live in .trivyignore)
-#   - tflint   : OpenTofu/Terraform lint (hard-fail on errors; warnings reported)
+#   - tflint   : Terraform lint (hard-fail on errors; warnings reported)
 #   - checkov  : deep IaC policy pass — OPT-IN via the run_checkov flag, reserved
 #                for full-suite / prod checks. Report-only (soft-fail).
 # Renovate (improvement-#009) keeps the pinned action/tool versions current.

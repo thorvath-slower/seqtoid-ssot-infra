@@ -30,13 +30,13 @@ Each repo has a way to run the important checks on your machine, in Docker, befo
   It runs: `make lint` (flake8 + pre-commit miniwdl-check) → `make check` (miniwdl static validation) → `make build` (docker build, no ECR push) → step tests → Rust tests.
 - **What it can't do (Bucket B):** the ECR push, the self-hosted `wdl-ci-integration` job, and the full short-read-mngs benchmarks. Base-image refreshes that need tool-output parity still need those benchmarks.
 
-## IaC repos (OpenTofu)
+## IaC repos (Terraform)
 No AWS needed for the merge gate (**Bucket A**):
 ```bash
 cd <stack>
-tofu fmt -check -recursive
-tofu init -input=false        # honors the committed lockfile
-tofu validate
+terraform fmt -check -recursive
+terraform init -input=false        # honors the committed lockfile
+terraform validate
 checkov -d .                  # policy scan (optional locally; runs in CI for czid-infra)
 tflint                        # lint
 trivy config .                # IaC misconfig scan

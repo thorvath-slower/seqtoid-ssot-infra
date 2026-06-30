@@ -25,15 +25,15 @@
 - **Validate locally first** (see [06 — Local validation](06-local-validation.md)). CI is the final gate, not the dev loop.
 - Before merging, read the **full** `gh pr checks` output and confirm **every required gate is `pass`**.
   - The line that shows `fail … Ns` is usually the **cancelled `push` run** — ignore it; the real gate is the longer `pull_request` run.
-  - For IaC repos the gate is `tofu fmt + validate` (czid-infra also runs `tflint`/`gitleaks`/`trivy`).
+  - For IaC repos the gate is `terraform fmt + validate` (czid-infra also runs `tflint`/`gitleaks`/`trivy`).
 - Merge with `gh pr merge <n> --squash --delete-branch`, then resync local `main` (`git fetch && git reset --hard origin/main`).
 
 ## 5. Never downgrade — pull forward
 - Never pin a dependency *backward* to dodge a version conflict. **Bump the toolchain forward** (e.g. Node), and file a ticket for any follow-on. Keep forward fixes as separate PRs.
 
 ## Bucket A vs Bucket B
-- **Bucket A** — doable in this dev environment: authoring code/IaC, `tofu validate` + checkov/trivy/tflint, local Docker builds, unit/integration tests, documentation.
-- **Bucket B** — needs live AWS / admin / credentials: `tofu apply` against real accounts, live data cutovers, creating AWS/GitHub/Auth0 admin resources, anything that mutates production resources with consumers.
+- **Bucket A** — doable in this dev environment: authoring code/IaC, `terraform validate` + checkov/trivy/tflint, local Docker builds, unit/integration tests, documentation.
+- **Bucket B** — needs live AWS / admin / credentials: `terraform apply` against real accounts, live data cutovers, creating AWS/GitHub/Auth0 admin resources, anything that mutates production resources with consumers.
 - **A change can be authored in Bucket A but only safely *merged* in Bucket B** if applying it could break live resources (e.g. adding SSE-KMS to a live bucket). When that's the case, label the ticket `bucket-b`, link the blocked-work tracker (CZID-167), and hold the merge for apply access. Say so explicitly on the ticket.
 
 ## Concurrent-agent hazard

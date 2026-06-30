@@ -1,0 +1,64 @@
+name: terraform-ci
+
+# Terraform fmt + validate gate for the foundation IaC. czid-infra previously had
+# only security.yml (tflint + Checkov) — a malformed or invalid foundation change
+# would not have been caught by CI the way the other IaC repos catch it. The
+# foundation is small, so a flat validate matrix over its root stacks is enough —
+# no per-env (dev/staging/prod) bucketing. validate runs with -backend=false, so no
+# cloud creds or remote state are needed; this is a pure correctness gate, safe to
+# run on every PR.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fmt:
+    name: terraform fmt -check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Read Terraform version (SSOT = .terraform-version)
+        id: tfver
+        run: echo "version=$(cat .terraform-version)" >> "$GITHUB_OUTPUT"
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ steps.tfver.outputs.version }}
+      - name: fmt check
+        run: terraform fmt -check -recursive infra/
+
+  validate:
+    name: terraform validate (${{ matrix.stack }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        stack:
+          - infra/state-foundation/bootstrap
+          - infra/state-foundation/foundation
+          - infra/state-foundation/consumers/seqtoid-web
+    steps:
+      - uses: actions/checkout@v6
+      - name: Read Terraform version (SSOT = .terraform-version)
+        id: tfver
+        run: echo "version=$(cat .terraform-version)" >> "$GITHUB_OUTPUT"
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ steps.tfver.outputs.version }}
+      - name: Fetch git module sources over HTTPS (public modules; CI has no SSH key)
+        run: |
+          git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+      - name: init (no backend) + validate
+        run: |
+          terraform -chdir=${{ matrix.stack }} init -backend=false -input=false
+          terraform -chdir=${{ matrix.stack }} validate

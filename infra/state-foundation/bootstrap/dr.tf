@@ -12,7 +12,7 @@
 #   - an IAM role S3 assumes to replicate,
 #   - a replication configuration on the primary state bucket.
 #
-# Enable with:  tofu apply -var enable_dr=true
+# Enable with:  terraform apply -var enable_dr=true
 # =============================================================================
 
 # Second-region provider used only for the destination bucket + key.

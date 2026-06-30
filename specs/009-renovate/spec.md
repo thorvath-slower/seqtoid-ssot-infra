@@ -10,13 +10,13 @@
 
 - `extends`: `config:recommended`, `:dependencyDashboard`, `:maintainLockFilesDisabled`.
 - Weekly schedule (`before 9am on monday`, `America/Los_Angeles`); `prConcurrentLimit: 5`, `prHourlyLimit: 2`; `rebaseWhen: conflicted`; `pinDigests: true`.
-- **`customManagers`** (regex): tracks **`.opentofu-version`** (1.12.1) against `opentofu/opentofu` GitHub releases.
+- **`customManagers`** (regex): tracks **`.terraform-version`** (1.12.1) against `hashicorp/terraform` GitHub releases.
 - **Grouping** (`packageRules`):
   - **terraform providers** — provider/module bumps across the foundation stacks (`bootstrap`, `foundation` + its modules, `consumers`) grouped into one PR (the `terraform` manager reads `required_providers`: aws, tls).
-  - **github actions** — the `tofu_ci.yml` actions (`checkout`, `setup-opentofu`, `paths-filter`, `github-script`) grouped.
+  - **github actions** — the `tofu_ci.yml` actions (`checkout`, `setup-terraform`, `paths-filter`, `github-script`) grouped.
 - `vulnerabilityAlerts.enabled: true`.
 
-No `docker`/`npm`/`pip` managers apply (this repo is pure OpenTofu).
+No `docker`/`npm`/`pip` managers apply (this repo is pure Terraform).
 
 ## Validation
 

@@ -5,7 +5,7 @@ output "state_bucket" {
 }
 
 output "lock_table" {
-  description = "DynamoDB lock table name (omit if using OpenTofu native S3 locking)."
+  description = "DynamoDB lock table name (omit if using Terraform native S3 locking)."
   value       = aws_dynamodb_table.tflock.name
 }
 

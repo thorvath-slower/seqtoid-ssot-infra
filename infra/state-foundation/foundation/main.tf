@@ -30,7 +30,7 @@ locals {
   tags = merge({
     Project     = "cz-id-stack"
     Environment = var.environment
-    ManagedBy   = "opentofu"
+    ManagedBy   = "terraform"
     Foundation  = "true"
   }, var.tags)
 }

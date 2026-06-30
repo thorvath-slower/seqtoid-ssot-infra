@@ -1,5 +1,5 @@
 # =============================================================================
-# Canonical OpenTofu version + provider constraints — THE single source of truth.
+# Canonical Terraform version + provider constraints — THE single source of truth.
 #
 # This file is symlinked into every root stack as `versions.tf`. Bump a version
 # here ONCE and every stack moves together — no drift, no per-stack edits.

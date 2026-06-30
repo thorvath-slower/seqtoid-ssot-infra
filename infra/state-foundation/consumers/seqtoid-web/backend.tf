@@ -4,7 +4,7 @@
 # Same shared bucket, its OWN unique key — never shares a state object with
 # another stack.
 #
-#   tofu init -backend-config=../../backend.hcl   # path to the shared backend.hcl
+#   terraform init -backend-config=../../backend.hcl   # path to the shared backend.hcl
 # -----------------------------------------------------------------------------
 terraform {
   required_version = ">= 1.6"

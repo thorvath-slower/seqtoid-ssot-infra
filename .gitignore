@@ -1,4 +1,4 @@
-# OpenTofu / Terraform local working state — never commit
+# Terraform / Terraform local working state — never commit
 .terraform/
 *.tfstate
 *.tfstate.*

@@ -98,7 +98,7 @@ is a list of SSM parameter **names**, not a secret.
 
 **Checkov (65 failed / 190 passed; top of 32 distinct):** CKV_AWS_136 ×11 (ECR not KMS-encrypted), CKV_AWS_51 ×11 (ECR tags mutable), CKV_AWS_341 ×5 (launch-template metadata hop limit), plus Lambda hardening (CKV_AWS_117 VPC, 116 DLQ, 50 X-Ray, 115 concurrency, 272 code-signing, 173 env-var encryption), SG descriptions, CW log retention/KMS, Secrets Manager CMK.
 
-**tflint:** 132 issues (lint/best-practice across the stacks; repo is pre-OpenTofu-conversion).
+**tflint:** 132 issues (lint/best-practice across the stacks; repo is pre-Terraform-conversion).
 
 ---
 
@@ -143,7 +143,7 @@ credentials; real auth0 secrets are provider/variable-sourced.
   findings across the two legacy repos — encryption (S3/SNS/SQS/CW/ECR/KMS),
   logging (S3 access, VPC flow, CloudFront, EKS control plane), public-access
   blocks, IAM least-privilege, CloudFront WAF/TLS, tag immutability, and module
-  commit-hash pinning. These overlap the planned prod-hardening and OpenTofu-
+  commit-hash pinning. These overlap the planned prod-hardening and Terraform-
   conversion work.
 
 ## Suggested order of operations

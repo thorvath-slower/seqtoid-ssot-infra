@@ -1,0 +1,38 @@
+name: validate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: terraform fmt + validate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Add each stack directory here as you create it.
+        stack:
+          - envs/dev/example
+    steps:
+      - uses: actions/checkout@v5
+      - name: Read Terraform version (SSOT = .terraform-version)
+        id: tfver
+        run: echo "version=$(cat .terraform-version)" >> "$GITHUB_OUTPUT"
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ steps.tfver.outputs.version }}
+          terraform_wrapper: false
+      - name: terraform fmt -check
+        run: terraform fmt -check -recursive
+      - name: terraform validate (${{ matrix.stack }})
+        working-directory: ${{ matrix.stack }}
+        # -backend=false: validate config without touching the real S3 backend.
+        run: |
+          terraform init -input=false -backend=false
+          terraform validate

@@ -4,15 +4,15 @@ Everything the overhaul changed, organized by area, with ticket references. This
 
 > Convention key: ✅ done/merged · ◐ in progress · ⬜ planned/backlog · 🅱️ Bucket B (needs live AWS).
 
-## A. Build system & toolchain: Terraform/fogg → OpenTofu
-- ✅ Converted the IaC repos from Terraform/Terraform-Cloud/fogg to **OpenTofu 1.12.1** (CZID-2, CZID-16). Removed fogg scaffolding; the tree is hand-authored.
+## A. Build system & toolchain: Terraform/fogg → Terraform
+- ✅ Converted the IaC repos from Terraform/Terraform-Cloud/fogg to **Terraform 1.12.1** (CZID-2, CZID-16). Removed fogg scaffolding; the tree is hand-authored.
 - ✅ **State foundation** stood up in `czid-infra` (`main` is the trunk): shared S3 backend `czid-tfstate-<account>-<region>` with **S3-native state locking** (CZID-29), bootstrap → foundation → consumers (state-foundation set).
 - ✅ **Provider lockfiles committed + `-upgrade` dropped** so builds are reproducible (CZID-30 for workflow-infra; ⬜ CZID-198 for web-infra's remaining half).
-- ✅ `opentofu/setup-opentofu@v1` → `@v2` (Node-24 runtime) across all 3 IaC repos (CZID-199).
+- ✅ `hashicorp/setup-terraform@v1` → `@v2` (Node-24 runtime) across all 3 IaC repos (CZID-199).
 - ⬜ Confirm fogg/Terraform fully gone (CZID-95); fogg-replacement **starter template** (CZID-207); per-account separation **workup** (CZID-208).
 
 ## B. Single-source-of-truth (SSOT) for versions
-- ✅ Audit + sweep so every toolchain version lives in one file (`.opentofu-version`/`.node-version`/`.ruby-version`/`.python-version`), CI reads the file (CZID-140 + children).
+- ✅ Audit + sweep so every toolchain version lives in one file (`.terraform-version`/`.node-version`/`.ruby-version`/`.python-version`), CI reads the file (CZID-140 + children).
 - ✅ seqtoid-web node single-sourced to `.node-version` across the repo: bumped `.node-version` 20.18.1 → **20.20.2**, `bin/setup-ci` + `Dockerfile` read the file (CZID-195/196/197).
 - ✅ Workflow-infra provider versions consolidated into `versions.tf` (CZID-169); web-infra uses a symlinked `_shared/versions.tf`.
 - ⬜ Renovate across the repos to keep it current (CZID-8).

@@ -7,7 +7,7 @@ hardening, no behavioural change to what the foundation provisions.
 ## Baseline → result (live Checkov, framework=terraform)
 - **Before:** 177 passed, **17 failed**, 0 skipped.
 - **After:** 188 passed, **5 failed**, **1 skipped**.
-- `tofu fmt` clean; `tofu validate` **Success** on both `bootstrap/` and `foundation/`.
+- `terraform fmt` clean; `terraform validate` **Success** on both `bootstrap/` and `foundation/`.
 
 ## Fixed in this slice (11 findings)
 | Check | What | Where |
@@ -42,11 +42,11 @@ grant so the existing IAM role policies continue to govern actual key use.
 ## Verification (local, no live env)
 - `docker run bridgecrew/checkov -d … --framework terraform`: 17 → 5 (all 5
   intentionally deferred above), 1 accepted-skip.
-- `tofu init -backend=false && tofu validate`: Success on bootstrap + foundation.
-- `tofu fmt -recursive`: no changes (formatting clean).
+- `terraform init -backend=false && terraform validate`: Success on bootstrap + foundation.
+- `terraform fmt -recursive`: no changes (formatting clean).
 
 ## Bucket B
-- `tofu apply` to realise the changes (DynamoDB SSE/PITR, EventBridge wiring,
+- `terraform apply` to realise the changes (DynamoDB SSE/PITR, EventBridge wiring,
   default-SG adoption, KMS policy changes) and confirm no drift.
 
 ## Acceptance

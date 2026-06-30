@@ -15,7 +15,7 @@ Findings from the discovery/review pass. **Each fix is committed on its own bran
 
 | ID / branch | Finding | Repo | Severity | Fix I author |
 |-------------|---------|------|----------|--------------|
-| **bug-#006-tf-state-locking** | No Terraform state locking → concurrent applies can corrupt state | `cypherid-web-infra` | High | DynamoDB lock table / OpenTofu `use_lockfile`. **Already implemented** in the state-backend scaffold (`feat/shared-state-backend`); re-commit under this ID if tracked separately. |
+| **bug-#006-tf-state-locking** | No Terraform state locking → concurrent applies can corrupt state | `cypherid-web-infra` | High | DynamoDB lock table / Terraform `use_lockfile`. **Already implemented** in the state-backend scaffold (`feat/shared-state-backend`); re-commit under this ID if tracked separately. |
 | **bug-#007-overbroad-deploy-iam** | Over-broad deploy IAM role (least-privilege violation) | `cypherid-web-infra` | High | Scoped, least-privilege policy/role in HCL + a deny-by-default baseline. |
 | **bug-#008-manual-deploy-no-bluegreen** | Manual `workflow_dispatch` deploys; no blue/green; no auto-rollback | CI / `cypherid-web-infra` | Medium | Automated GitHub Actions deploy + Argo Rollouts blue/green spec with analysis gate, auto-rollback, graceful drain. |
 | **bug-#010-rank-session-var-ranking** | Fragile MySQL `@rank` session-variable ranking in the `TaxonCount` path — plan-dependent, correctness-risky | `seqtoid-web` | Medium | Rewrite to `ROW_NUMBER()` window functions + parity tests (offline). |
@@ -41,7 +41,7 @@ Findings from the discovery/review pass. **Each fix is committed on its own bran
 
 These aren't separate bugs; they're the parts of the fixes above that need the live environment, real data, or sign-off:
 - Building & running the upgraded runtimes and fixing runtime-only breakages (#001–#004).
-- Applying the engine/version changes against real infra (#005); `tofu apply` of the IAM scoping (#007).
+- Applying the engine/version changes against real infra (#005); `terraform apply` of the IAM scoping (#007).
 - **Live-data parity & performance validation** of the SQL rewrites (#010, #011) — I provide offline parity tests; the real-data run and `EXPLAIN` tuning are yours.
 - Rotating real secrets and unsealing OpenBao (#009).
 - Security review / pen test sign-off where relevant.
