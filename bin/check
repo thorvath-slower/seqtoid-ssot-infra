@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Run czid-infra's CI checks locally — mirrors .github/workflows/{terraform-ci,security}.yml so that a green
+# `make check` here predicts a green CI (local == CI, CZID-311). The terraform fmt+validate gate is the core
+# check and is required; the heavier security scanners are run if installed and skipped-with-a-note if not,
+# so the IaC gate is always usable. Install the scanners to run the full security gate locally:
+#   brew install terraform trivy tflint gitleaks
+set -uo pipefail
+cd "$(dirname "$0")/.."
+
+# Root stacks — keep in sync with the validate matrix in .github/workflows/terraform-ci.yml.
+STACKS=(
+  infra/state-foundation/bootstrap
+  infra/state-foundation/foundation
+  infra/state-foundation/consumers/seqtoid-web
+)
+
+fail=0
+skipped=0
+have() { command -v "$1" >/dev/null 2>&1; }
+hdr()  { printf '\n\033[1m== %s ==\033[0m\n' "$1"; }
+
+hdr "terraform fmt -check"
+if have terraform; then
+  terraform fmt -check -recursive infra/ && echo "  ✓ formatted" || { echo "  ✗ run: terraform fmt -recursive infra/"; fail=1; }
+else
+  echo "  ⚠ terraform not installed — cannot run the IaC gate (brew install terraform)"; fail=1
+fi
+
+hdr "terraform validate (per stack, -backend=false)"
+if have terraform; then
+  for s in "${STACKS[@]}"; do
+    printf '  -- %s\n' "$s"
+    if terraform -chdir="$s" init -backend=false -input=false >/dev/null 2>&1 && terraform -chdir="$s" validate >/dev/null; then
+      echo "     ✓"
+    else
+      echo "     ✗ validate failed (re-run without the redirect to see why)"; fail=1
+    fi
+  done
+fi
+
+hdr "security scanners (skipped if not installed — CI always runs them)"
+if have gitleaks; then
+  gitleaks git . --redact --no-banner --exit-code 1 && echo "  ✓ gitleaks" || { echo "  ✗ gitleaks: secret found"; fail=1; }
+else echo "  ⚠ gitleaks not installed"; skipped=1; fi
+if have trivy; then
+  trivy fs --scanners vuln,misconfig,secret --severity HIGH,CRITICAL --ignore-unfixed --trivyignores .trivyignore --exit-code 1 . \
+    && echo "  ✓ trivy" || { echo "  ✗ trivy: HIGH/CRITICAL finding not in .trivyignore"; fail=1; }
+else echo "  ⚠ trivy not installed (brew install trivy)"; skipped=1; fi
+if have tflint; then
+  tflint --recursive --minimum-failure-severity=error && echo "  ✓ tflint" || { echo "  ✗ tflint"; fail=1; }
+else echo "  ⚠ tflint not installed (brew install tflint)"; skipped=1; fi
+
+echo
+if [ "$fail" -ne 0 ]; then
+  echo "❌ local checks failed (see above)"
+elif [ "$skipped" -ne 0 ]; then
+  echo "✅ checks that ran passed — but some scanners were skipped; CI still runs the full set"
+else
+  echo "✅ all local checks passed — matches CI"
+fi
+exit "$fail"
