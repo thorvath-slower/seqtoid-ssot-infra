@@ -18,6 +18,7 @@ locals {
   nat_gateway_count = var.single_nat_gateway ? 1 : var.az_count
 }
 
+#trivy:ignore:AVD-AWS-0136 SNS holds only CloudWatch-alarm metadata (no sensitive data); the AWS-managed SNS key satisfies encryption-at-rest, so a CMK is unwarranted.
 resource "aws_sns_topic" "alerts" {
   name              = "${local.name}-alerts"
   kms_master_key_id = "alias/aws/sns" # encrypt at rest (CKV_AWS_26); AWS-managed SNS key (no CMK needed for alarm metadata)
