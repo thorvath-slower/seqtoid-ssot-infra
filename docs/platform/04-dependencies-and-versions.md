@@ -28,7 +28,7 @@ This is the heart of "how we maintain the platform." Almost every maintenance ta
 ## GitHub Action versions
 - **Keep actions on the Node-24 runtime.** GitHub removes the Node-20 runtime from runners on **2026-09-16**; node16/node20 actions break after that (CZID-89). Check an action's runtime by reading its `action.yml` `runs.using` at the pinned ref.
 - **Composite / Docker actions are unaffected** by the Node-runtime deprecation (they have no Node entrypoint).
-- When an upstream action is unmaintained on an old runtime, **bring it in-house**: a standalone **private** repo under `thorvath-slower` (never `gh repo fork`), modernize it there, and pin consumers to it. Example: `julianwachholz/flake8-action` (node16) → `thorvath-slower/flake8-action` (node24).
+- When an upstream action is unmaintained on an old runtime, **bring it in-house**: a standalone **private** repo under `thorvath-slower` (never `gh repo fork`), modernize it there, and pin consumers to it. Example: `julianwachholz/flake8-action` (node16) → brought in-house, then **collapsed into `thorvath-slower/seqtoid-ci-workflows/flake8-action`** (public CI SSOT; node24), consumed via the `@v1` moving tag.
   - **SSOT for an in-house action:** a single **moving major tag** (e.g. `@v2`) in our action repo is the single source of truth. Every consumer references `@v2`; to roll out a new version, move that one tag and all consumers pick it up. (Alternative: SHA-pin + Renovate to bump in lockstep — more strict, needs Renovate.)
 
 ## Renovate

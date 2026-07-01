@@ -19,7 +19,7 @@ Everything the overhaul changed, organized by area, with ticket references. This
 
 ## C. GitHub Actions: Node-runtime modernization
 - ✅ Node-20/16 runtime sweep — bump every action to a Node-24-compatible version before GitHub removes Node 20 on **2026-09-16** (CZID-89). IaC repos done; app-repo remainder mapped to CZID-163/150.
-- ✅ Brought `flake8-action` in-house: standalone **private** `thorvath-slower/flake8-action` (node16 → node24), consumers pinned to the SSOT `@v2` moving tag (CZID-204).
+- ✅ Brought `flake8-action` in-house, then **collapsed it into `thorvath-slower/seqtoid-ci-workflows/flake8-action`** (public CI SSOT; node16 → node24); consumers pinned to the `@v1` moving tag (CZID-204 / #405 / #406).
 - ⬜ Held action bumps: `configure-aws-credentials@v4→v6`, `upload-artifact@v4→v7`, release-please (CZID-163/149); seqtoid-workflows actions (CZID-150).
 
 ## D. Security & supply-chain hardening
