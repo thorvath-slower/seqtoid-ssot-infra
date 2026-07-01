@@ -23,3 +23,7 @@ jobs:
       run_checkov: true                   # checkov is now a GATE on every run (was workflow_dispatch-only)
       checkov_soft_fail: false            # hard-fail on findings NOT in the baseline
       checkov_baseline: .checkov.baseline # the 2 inherited EKS-public-endpoint findings, tracked by #341
+      # Vendored upstream cztack modules (#403) are a third-party library, not our authored IaC —
+      # exclude them from policy scans (186 upstream checkov findings otherwise). See #418.
+      checkov_skip_path: modules/cztack
+      trivy_skip_dirs: modules/cztack
