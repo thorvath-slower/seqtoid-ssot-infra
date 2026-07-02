@@ -62,4 +62,4 @@ git add .terraform.lock.hcl
 Follow the platform guide — **`czid-infra/docs/platform/`** (overview, conventions, Terraform/IaC, dependency & version management, runbooks). In short: work on `thorvath-slower` forks only; small single-concern PRs; validate locally before pushing; never downgrade a dependency to dodge a conflict — pull the toolchain forward.
 
 ## Renovate
-`renovate.json` keeps dependencies + the `.terraform-version` pin current automatically once the Renovate app is enabled on the repo (see CZID-212).
+`renovate.json` keeps dependencies + the `.terraform-version` pin current automatically once the Renovate app is enabled on the repo.
