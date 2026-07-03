@@ -3,9 +3,11 @@
 CZ ID is a hypothesis-free metagenomic platform: scientists upload sequencing data, a bioinformatics pipeline identifies pathogens, and a web app presents the results. The platform spans **five active repositories**, each with a clear responsibility.
 
 > **GraphQL federation collapsed (CZID-129 → 132–136, 285 / 302–311):** the former
-> `seqtoid-graphql-federation-server` (a Node / GraphQL-Mesh federation layer + the NextGen API) is
-> **decommissioned** — `seqtoid-web` (Rails) now serves `/graphql` **natively**. That server is no
-> longer deployed or maintained, so it's omitted below.
+> `seqtoid-graphql-federation-server` (a Node / GraphQL-Mesh proxy over the Rails GraphQL and REST
+> APIs) is **decommissioned** — `seqtoid-web` (Rails) now serves `/graphql` **natively**. The
+> abandoned NextGen federation sources (the `NextGenEntities` / `NextGenWorkflows` GraphQL
+> microservices) were gated off and never deployed here, and have since been stripped (CZID-284).
+> That server is no longer deployed or maintained, so it's omitted below.
 
 ## The repositories
 
