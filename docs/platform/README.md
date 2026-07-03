@@ -17,6 +17,7 @@ This is the operator's guide to the CZ ID platform **after the modernization ove
 5. **[05 — Runbooks](05-runbooks.md)** — copy-paste procedures for the common maintenance tasks.
 6. **[06 — Local validation](06-local-validation.md)** — how to test changes locally before pushing (CI is the final gate, not the dev loop).
 7. **[07 — Functional change inventory](07-functional-change-inventory.md)** — everything the overhaul changed, by area, with ticket references.
+8. **[Branching & deploy model](BRANCHING-DEPLOY-MODEL.md)** — branch topology (`integration`↔`main`), merge/promotion gates, environment promotion (GitOps + Argo Rollouts), and the deploy best-practices. **Read before deploying or merging to a protected branch.**
 
 ## The five rules you must never break
 1. **Push and open PRs only to `thorvath-slower/*` forks.** Never to `jsims-slower`, `chanzuckerberg`, `IT-Academic-Research-Services`, or any other upstream. (See [02](02-working-conventions.md).)
