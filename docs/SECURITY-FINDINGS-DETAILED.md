@@ -8,6 +8,8 @@ Every individual finding (729) from the `improvement-#010` scanners (Trivy + Che
 
 > **Caveat:** the cypherid-web-infra **Trivy** scan did not complete (very large repo); its 591 **Checkov** findings cover the IaC-misconfig surface. gitleaks (7 hits, all triaged false positives) is documented in the overview, not repeated here.
 
+> **NextGen note (post-CZID-284):** the `fivetran-ssh-nextgen` component path in the findings below is a legacy misnomer — after the NextGen strip it tunnels only the legacy Rails MySQL (Fivetran → Snowflake analytics sync), not any NextGen service. The finding rows below preserve the original scan-time paths (this is a dated 2026-06-11 snapshot); the component rename is tracked separately in CZID-301.
+
 | Repo | findings | trivy | checkov |
 |------|---------:|------:|--------:|
 | czid-infra | 20 | 3 | 17 |
