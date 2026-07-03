@@ -13,7 +13,7 @@ All AWS infrastructure is defined as code with **Terraform** (the open-source Te
   - uses: hashicorp/setup-terraform@v2      # node24 runtime (see doc 04)
     with:
       terraform_version: .terraform-version  # <- SSOT
-      tofu_wrapper: false
+      terraform_wrapper: false
   ```
 - To upgrade Terraform everywhere: change `.terraform-version`, regenerate lockfiles, done. See [05 — Runbooks](05-runbooks.md#bump-the-terraform-version).
 
@@ -48,7 +48,7 @@ cypherid-web-infra/terraform/
 ```
 - A **component** (a.k.a. stack) = one independently-applied unit (e.g. `envs/dev/db`).
 - The `_shared/versions.tf` is symlinked into stacks so provider/version constraints are defined **once** (SSOT for provider versions across ~188 stacks).
-- CI: `validate-stack.yml` / `tofu_ci.yml` (validate), `plan_*` (PR plan), `apply_*` (gated apply), `promote.yml` (promotion between environments).
+- CI: `validate-stack.yml` / `terraform-ci.yml` (validate), `plan_*` (PR plan), `apply_*` (gated apply), `promote.yml` (promotion between environments).
 
 ### cypherid-workflow-infra — the pipeline's infra
 - Flatter layout (`terraform/` + `terraform/modules/`) for the Batch / Step Functions / Lambda substrate that runs the WDL pipelines.
