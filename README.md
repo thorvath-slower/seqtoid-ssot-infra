@@ -162,7 +162,7 @@ model, backup/durability guarantees, and the bootstrap procedure.
 ## Getting started
 
 **Prerequisites:** Terraform **1.12.1** (pinned in `.terraform-version`; e.g.
-`tofuenv install`), AWS credentials for the target account.
+`tfenv install`), AWS credentials for the target account.
 
 ```bash
 # 1) One-time: bootstrap the shared state backend (runs on a LOCAL backend)
