@@ -63,3 +63,15 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "enable_container_insights" {
+  description = <<-EOT
+    Enable the amazon-cloudwatch-observability EKS addon (Container Insights).
+    Publishes node/pod metrics to the ContainerInsights CloudWatch namespace,
+    which the foundation baseline pod/node alarms depend on. Carries per-node
+    CloudWatch cost and only reconciles once the node group is Ready, so it is
+    opt-in per env and applied deliberately (CZID-364, apply = Bucket B).
+  EOT
+  type        = bool
+  default     = false
+}
