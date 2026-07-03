@@ -6,8 +6,9 @@
 # APIs, etc.).
 #
 # NOT in this slice (documented so the gap is explicit):
-#   - EKS pod/node alarms need the amazon-cloudwatch-observability addon (Container Insights), which
-#     the foundation does not yet enable (only core addons) — a separate, larger change.
+#   - EKS pod/node/control-plane alarms need the amazon-cloudwatch-observability addon (Container
+#     Insights). CZID-364 adds that addon (var.enable_container_insights) and the baseline EKS alarms
+#     in monitoring-eks.tf — both opt-in per env, applied deliberately (Bucket B).
 #   - RDS alarms live in cypherid-web-infra (the db stack), not the foundation.
 #   - State-backend (S3 state bucket / DynamoDB lock table) alarms belong in state-foundation/bootstrap.
 #
