@@ -13,7 +13,7 @@
 - **`customManagers`** (regex): tracks **`.terraform-version`** (1.12.1) against `hashicorp/terraform` GitHub releases.
 - **Grouping** (`packageRules`):
   - **terraform providers** — provider/module bumps across the foundation stacks (`bootstrap`, `foundation` + its modules, `consumers`) grouped into one PR (the `terraform` manager reads `required_providers`: aws, tls).
-  - **github actions** — the `tofu_ci.yml` actions (`checkout`, `setup-terraform`, `paths-filter`, `github-script`) grouped.
+  - **github actions** — the `terraform-ci.yml` actions (`checkout`, `setup-terraform`, `paths-filter`, `github-script`) grouped.
 - `vulnerabilityAlerts.enabled: true`.
 
 No `docker`/`npm`/`pip` managers apply (this repo is pure Terraform).
