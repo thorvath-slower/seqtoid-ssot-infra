@@ -5,8 +5,8 @@
 exact file path and in-file location of each. If it's in the "human-maintained" table,
 nothing will remind you — so this list is how we avoid silently drifting.
 
-> ⚠️ **Renovate is configured (`renovate.json`) but the GitHub app is not enabled yet
-> (CZID-212).** Until it is, *everything* below is effectively human-maintained. The
+> ⚠️ **Renovate is configured (`renovate.json`) but the GitHub app is not enabled
+> yet.** Until it is, *everything* below is effectively human-maintained. The
 > "Automated" table describes the intended steady state once the app is on.
 
 > ℹ️ **Two version regimes live here.** The live `infra/` foundation declares providers
