@@ -1,0 +1,90 @@
+name: live regression gate (HELD — behind the cluster)
+
+# TIER-2 of the no-regressions guard: the LIVE end-to-end correctness proof. The offline gates
+# (per-repo regression-gate.yml + the cross-repo main-regression-gate.yml) can prove the code and
+# config didn't regress; only a real pipeline run can prove the SCIENCE didn't. This runs the
+# Benchmark workflow (BenchmarkWorkflowRun) through the real SFN+Batch+S3+ECR path and fails if the
+# result drifts — AUPR < 0.98 or > 1% deviation from the blessed truth — plus the Argo Rollouts
+# prePromotionAnalysis smoke (#326, deploy/charts/seqtoid-web/templates/analysistemplate.yaml).
+#
+# ┌─ HELD BY DESIGN ──────────────────────────────────────────────────────────────────────────────┐
+# │ Every job is gated on `vars.LIVE_CLUSTER_READY == 'true'`. seqtoid prod/staging aren't up and    │
+# │ we do NOT apply against AWS yet, so this workflow is DORMANT: it is authored and reviewable but   │
+# │ runs nothing until Tom sets the repo/environment variable LIVE_CLUSTER_READY=true (and provisions │
+# │ the OIDC role + benchmark truth-set). Arming it is a deliberate go-live step, not a merge.        │
+# └───────────────────────────────────────────────────────────────────────────────────────────────┘
+#
+# To ARM (post-cutover): set repo var LIVE_CLUSTER_READY=true; ensure the 'staging' environment has
+# the deploy OIDC role (secrets.AWS_DEPLOY_ROLE_ARN) + BENCHMARK_TRUTH_S3 pointing at the blessed set.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment: { description: "target env to benchmark against", type: string, default: "staging" }
+      aupr_min:    { description: "minimum acceptable AUPR",          type: string, default: "0.98" }
+      max_deviation_pct: { description: "max % deviation from truth", type: string, default: "1.0" }
+  schedule:
+    - cron: "0 9 * * *"   # 09:00 UTC nightly (after the offline cross-repo gate at 07:00)
+
+permissions:
+  contents: read
+  id-token: write   # OIDC assume-role (scoped, read+benchmark only)
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    outputs:
+      armed: ${{ steps.check.outputs.armed }}
+    steps:
+      - id: check
+        run: |
+          if [ "${{ vars.LIVE_CLUSTER_READY }}" = "true" ]; then
+            echo "armed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "armed=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::live regression gate is HELD (vars.LIVE_CLUSTER_READY != true). No live run performed."
+          fi
+
+  benchmark:
+    needs: guard
+    if: needs.guard.outputs.armed == 'true'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'staging' }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { repository: thorvath-slower/seqtoid-web, ref: main, path: seqtoid-web }
+
+      - name: Assume deploy role (OIDC, scoped)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-west-2
+
+      - name: Launch the Benchmark workflow + gate on AUPR / deviation
+        env:
+          BENCHMARK_TRUTH_S3: ${{ secrets.BENCHMARK_TRUTH_S3 }}
+          AUPR_MIN: ${{ inputs.aupr_min || '0.98' }}
+          MAX_DEV: ${{ inputs.max_deviation_pct || '1.0' }}
+        run: |
+          # Kick a BenchmarkWorkflowRun through the real pipeline and block on the scored result.
+          # The scoring/threshold logic already lives in the app (benchmark_update); this step invokes
+          # it against the target env and fails the gate if the run regresses.
+          #   bundle exec rake benchmark:run_and_gate AUPR_MIN=$AUPR_MIN MAX_DEV=$MAX_DEV TRUTH=$BENCHMARK_TRUTH_S3
+          echo "::error::live-benchmark step is a scaffold — wire it to the benchmark:run_and_gate rake task when arming (#388)."
+          exit 1
+
+  rollout-smoke:
+    needs: guard
+    if: needs.guard.outputs.armed == 'true'
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment || 'staging' }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { repository: thorvath-slower/seqtoid-web, ref: main, path: seqtoid-web }
+      - name: Argo Rollouts prePromotionAnalysis smoke (#326)
+        run: |
+          # Validates the blue/green AnalysisTemplate gate the Rollout uses before promotion.
+          #   kubectl argo rollouts get rollout seqtoid-web -n <ns> --watch --timeout 10m
+          #   kubectl argo rollouts status seqtoid-web -n <ns>   # non-zero if the analysis failed
+          echo "::error::rollout-smoke step is a scaffold — wire it to the cluster's kubectl/argo context when arming."
+          exit 1
