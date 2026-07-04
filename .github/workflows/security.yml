@@ -16,10 +16,14 @@ on:
 
 jobs:
   security:
-    # CZID-161 pilot: pinned to the reusable BRANCH because the checkov_baseline/checkov_soft_fail inputs
-    # aren't in @v1 yet (ci-workflows#1). Repin to @v1 once that merges + v1 is re-tagged.
-    uses: thorvath-slower/ci-workflows/.github/workflows/security.yml@czid-161-checkov-baseline-gate
+    # SSOT reusable, pinned to the @v1 moving major tag. checkov_baseline landed in v1 (#416); the
+    # previously-archived ci-workflows repo is retired in favor of seqtoid-ci-workflows.
+    uses: thorvath-slower/seqtoid-ci-workflows/.github/workflows/security.yml@v1
     with:
       run_checkov: true                   # checkov is now a GATE on every run (was workflow_dispatch-only)
       checkov_soft_fail: false            # hard-fail on findings NOT in the baseline
       checkov_baseline: .checkov.baseline # the 2 inherited EKS-public-endpoint findings, tracked by #341
+      # Vendored upstream cztack modules (#403) are a third-party library, not our authored IaC —
+      # exclude them from policy scans (186 upstream checkov findings otherwise). See #418.
+      checkov_skip_path: modules/cztack
+      trivy_skip_dirs: modules/cztack

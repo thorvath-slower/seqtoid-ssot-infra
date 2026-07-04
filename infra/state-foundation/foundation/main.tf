@@ -102,7 +102,11 @@ module "eks" {
   node_min_size          = var.eks_node_min_size
   node_max_size          = var.eks_node_max_size
   node_desired_size      = var.eks_node_desired_size
-  tags                   = local.tags
+
+  # CZID-364: Container Insights (opt-in per env; feeds the EKS baseline alarms).
+  enable_container_insights = var.enable_container_insights
+
+  tags = local.tags
 }
 
 module "openbao" {

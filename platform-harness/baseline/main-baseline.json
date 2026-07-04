@@ -1,0 +1,24 @@
+{
+  "captured_at": "2026-07-03T23:51:30Z",
+  "host": "Darwin arm64",
+  "app_branch": "version-4-mysql-latest-auth0",
+  "commits": {
+    "seqtoid-web": "b5fc3ee34",
+    "cypherid-web-infra": "942799d",
+    "cypherid-workflow-infra": "2927a09",
+    "foundation": "7a784f0"
+  },
+  "metrics": {
+    "app.rspec.examples": null,
+    "app.rspec.failures": null,
+    "app.jest.total": null,
+    "app.jest.failed": null,
+    "app.coverage.line": 72.13,
+    "checkov.web-infra.passed": 3718,
+    "checkov.workflow-infra.passed": 203,
+    "checkov.foundation.passed": 250,
+    "tf.web-infra.resource_blocks": 725,
+    "tf.workflow-infra.resource_blocks": 63,
+    "tf.foundation.resource_blocks": 82
+  }
+}

@@ -1,0 +1,86 @@
+name: main regression gate (cross-repo)
+
+# The COORDINATED, cross-repo half of the no-regressions guard (the per-repo half is the reusable
+# regression-gate.yml each repo runs on its own integration→main PR). Checks out ALL repos together
+# and runs the platform-harness OFFLINE layers + the baseline-delta regression check across them:
+# terraform validate, checkov, charts, supply-chain, cross-repo parity/consistency, plus the
+# infra/coverage regression metrics. READ-ONLY (no AWS, -backend=false) — see platform-harness/README.md.
+#
+# The APP-SUITE regression (RSpec/Jest counts) is owned by the per-repo MySQL gate (seqtoid-web
+# ci-test-mysql8.yml) — the source of truth for the app on the real MySQL-8 target — so it is NOT
+# re-run here (running `make ci-local` here would exercise the superseded Postgres path). The
+# regression layer reads the committed SimpleCov artifact for coverage; app counts SKIP here.
+#
+# Cadence: nightly against the integration heads + on-demand before a promotion wave.
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_ref:      { description: "seqtoid-web ref",             type: string, default: "integration" }
+      web_ref:      { description: "cypherid-web-infra ref",      type: string, default: "integration" }
+      wf_ref:       { description: "cypherid-workflow-infra ref", type: string, default: "integration" }
+      ssot_ref:     { description: "seqtoid-ssot-infra ref",      type: string, default: "integration" }
+  schedule:
+    - cron: "0 7 * * *"   # 07:00 UTC nightly
+
+permissions:
+  contents: read
+
+jobs:
+  cross-repo-regression:
+    runs-on: ubuntu-latest
+    env:
+      ORG: thorvath-slower
+      WORKSPACE_ROOT: ${{ github.workspace }}/ws
+    steps:
+      - name: Checkout SSOT (harness + foundation)
+        uses: actions/checkout@v4
+        with:
+          repository: thorvath-slower/seqtoid-ssot-infra
+          ref: ${{ inputs.ssot_ref || 'integration' }}
+          path: ws/seqtoid-ssot-infra
+          fetch-depth: 1
+      - name: Checkout seqtoid-web (drop-in target branch)
+        uses: actions/checkout@v4
+        with:
+          repository: thorvath-slower/seqtoid-web
+          ref: ${{ inputs.app_ref || 'integration' }}
+          path: ws/seqtoid-web
+          fetch-depth: 0
+      - name: Checkout cypherid-web-infra
+        uses: actions/checkout@v4
+        with:
+          repository: thorvath-slower/cypherid-web-infra
+          ref: ${{ inputs.web_ref || 'integration' }}
+          path: ws/cypherid-web-infra
+          fetch-depth: 1
+      - name: Checkout cypherid-workflow-infra
+        uses: actions/checkout@v4
+        with:
+          repository: thorvath-slower/cypherid-workflow-infra
+          ref: ${{ inputs.wf_ref || 'integration' }}
+          path: ws/cypherid-workflow-infra
+          fetch-depth: 1
+
+      - name: Toolchain (terraform, checkov, jq, helm, kubeconform)
+        run: |
+          set -e
+          sudo apt-get update -y && sudo apt-get install -y jq
+          pip install --quiet checkov==3.3.6
+          # terraform
+          curl -fsSL https://releases.hashicorp.com/terraform/1.15.7/terraform_1.15.7_linux_amd64.zip -o /tmp/tf.zip
+          sudo unzip -o /tmp/tf.zip -d /usr/local/bin
+          # helm + kubeconform
+          curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+          curl -fsSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | sudo tar -xz -C /usr/local/bin kubeconform
+
+      - name: Platform harness — offline cross-repo layers + regression delta
+        run: |
+          cd ws/seqtoid-ssot-infra/platform-harness
+          # App-suite regression is owned by seqtoid-web ci-test-mysql8 (the real MySQL-8 target); not
+          # re-run here. regression compares infra (checkov/tf-inventory) + coverage from the SimpleCov artifact.
+          export APP_REPO="$WORKSPACE_ROOT/seqtoid-web"
+          export WEB_INFRA_REPO="$WORKSPACE_ROOT/cypherid-web-infra"
+          export WF_INFRA_REPO="$WORKSPACE_ROOT/cypherid-workflow-infra"
+          export FOUNDATION_REPO="$WORKSPACE_ROOT/seqtoid-ssot-infra"
+          ./run.sh --full preflight terraform checkov charts supplychain parity crossrepo regression

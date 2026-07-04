@@ -36,3 +36,11 @@ RUNNER_CHART="${RUNNER_CHART:-deploy/charts/seqtoid-pipeline-runner}"
 # Shared Terraform provider cache so repeated `init -backend=false` is fast + offline-after-first.
 export TF_PLUGIN_CACHE_DIR="${TF_PLUGIN_CACHE_DIR:-$HOME/.terraform.d/plugin-cache}"
 mkdir -p "$TF_PLUGIN_CACHE_DIR" 2>/dev/null || true
+
+# --- Regression gate (checks/80-regression.sh) ---
+# The blessed baseline of known-good metrics; capture it on a green main via ./capture-baseline.sh.
+BASELINE_FILE="${BASELINE_FILE:-$HARNESS_DIR/baseline/main-baseline.json}"
+# Allowed line-coverage slip (percentage points) before a coverage drop is called a regression.
+COVERAGE_TOLERANCE="${COVERAGE_TOLERANCE:-0.5}"
+# CI tees the app suite into HARNESS_APP_LOG so the regression layer can compare RSpec/Jest counts;
+# unset by default (the layer skips the count comparison when it's absent).
