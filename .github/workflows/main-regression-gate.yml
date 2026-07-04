@@ -1,13 +1,17 @@
 name: main regression gate (cross-repo)
 
 # The COORDINATED, cross-repo half of the no-regressions guard (the per-repo half is the reusable
-# regression-gate.yml each repo runs on its own integration→main PR). This runs the whole
-# platform-harness --main-gate over ALL repos checked out together: offline validation of every
-# layer PLUS the baseline-delta regression check, with the real app suite feeding the RSpec/Jest/
-# coverage metrics. It is READ-ONLY (no AWS, -backend=false) — see platform-harness/README.md.
+# regression-gate.yml each repo runs on its own integration→main PR). Checks out ALL repos together
+# and runs the platform-harness OFFLINE layers + the baseline-delta regression check across them:
+# terraform validate, checkov, charts, supply-chain, cross-repo parity/consistency, plus the
+# infra/coverage regression metrics. READ-ONLY (no AWS, -backend=false) — see platform-harness/README.md.
 #
-# Cadence: nightly against the integration heads + on-demand before a promotion wave. It is heavy
-# (Docker+MySQL app suite + full checkov), so it is NOT a per-PR gate — the per-repo reusable gate is.
+# The APP-SUITE regression (RSpec/Jest counts) is owned by the per-repo MySQL gate (seqtoid-web
+# ci-test-mysql8.yml) — the source of truth for the app on the real MySQL-8 target — so it is NOT
+# re-run here (running `make ci-local` here would exercise the superseded Postgres path). The
+# regression layer reads the committed SimpleCov artifact for coverage; app counts SKIP here.
+#
+# Cadence: nightly against the integration heads + on-demand before a promotion wave.
 
 on:
   workflow_dispatch:
@@ -70,29 +74,13 @@ jobs:
           curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
           curl -fsSL https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | sudo tar -xz -C /usr/local/bin kubeconform
 
-      - name: Run the app suite (Docker+MySQL) → capture counts + coverage
-        id: suite
-        continue-on-error: true   # a suite failure is surfaced by the regression layer AND fails the gate below
-        run: |
-          set -o pipefail
-          export HARNESS_APP_LOG="${{ github.workspace }}/ci-local.log"
-          echo "HARNESS_APP_LOG=$HARNESS_APP_LOG" >> "$GITHUB_ENV"
-          cd ws/seqtoid-web
-          make ci-local 2>&1 | tee "$HARNESS_APP_LOG"
-
-      - name: Platform harness — offline layers + regression delta
+      - name: Platform harness — offline cross-repo layers + regression delta
         run: |
           cd ws/seqtoid-ssot-infra/platform-harness
-          # We ran the app suite explicitly above (log + coverage already produced), so DON'T --with-app
-          # here (avoid double-running it). regression reads $HARNESS_APP_LOG + the SimpleCov artifact.
+          # App-suite regression is owned by seqtoid-web ci-test-mysql8 (the real MySQL-8 target); not
+          # re-run here. regression compares infra (checkov/tf-inventory) + coverage from the SimpleCov artifact.
           export APP_REPO="$WORKSPACE_ROOT/seqtoid-web"
           export WEB_INFRA_REPO="$WORKSPACE_ROOT/cypherid-web-infra"
           export WF_INFRA_REPO="$WORKSPACE_ROOT/cypherid-workflow-infra"
           export FOUNDATION_REPO="$WORKSPACE_ROOT/seqtoid-ssot-infra"
           ./run.sh --full preflight terraform checkov charts supplychain parity crossrepo regression
-
-      - name: Fail if the app suite itself failed
-        if: steps.suite.outcome == 'failure'
-        run: |
-          echo "::error::app suite (make ci-local) exited non-zero — see the 'Run the app suite' step."
-          exit 1
