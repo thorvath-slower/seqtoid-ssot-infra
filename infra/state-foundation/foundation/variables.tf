@@ -118,10 +118,22 @@ variable "enable_container_insights" {
 variable "enable_eks_alarms" {
   description = <<-EOT
     Create the baseline EKS CloudWatch alarms (node NotReady / low node count /
-    pods failed / node CPU+memory) in monitoring-eks.tf. Requires
-    enable_container_insights so the ContainerInsights metrics exist; keep false
-    until the cluster + addon are live.
+    pods failed / node CPU+memory in monitoring-eks.tf, plus the control-plane
+    apiserver-5xx alarm in monitoring-eks-controlplane.tf). The node/pod alarms
+    require enable_container_insights so the ContainerInsights metrics exist; the
+    control-plane 5xx alarm only needs cluster audit logging (already enabled).
+    Keep false until the cluster (+ addon, for the node/pod alarms) is live.
   EOT
   type        = bool
   default     = false
+}
+
+variable "eks_apiserver_5xx_threshold" {
+  description = <<-EOT
+    Sum of apiserver 5xx audit entries over the alarm period (5m) above which the
+    EKS control-plane 5xx alarm fires. Conservative default; tune once a real
+    baseline is observed. Only used when enable_eks_alarms = true.
+  EOT
+  type        = number
+  default     = 10
 }
