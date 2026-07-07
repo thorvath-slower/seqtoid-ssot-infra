@@ -118,11 +118,12 @@ module "openbao" {
 }
 
 module "registries" {
-  source           = "./modules/registries"
-  name             = local.name
-  kms_key_arn      = aws_kms_key.app.arn
-  ecr_repositories = var.ecr_repositories
-  tags             = local.tags
+  source                   = "./modules/registries"
+  name                     = local.name
+  kms_key_arn              = aws_kms_key.app.arn
+  ecr_repositories         = var.ecr_repositories
+  pull_through_cache_rules = var.ecr_pull_through_cache_rules
+  tags                     = local.tags
 }
 
 # =============================================================================
