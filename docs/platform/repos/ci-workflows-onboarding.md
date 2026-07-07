@@ -18,7 +18,7 @@ the repo, **the repo wins** — please fix the drift.
 drifts — every repo **calls a reusable workflow** hosted here. One definition, updated once,
 used everywhere.
 
-The problem it kills: a single CI change (e.g. the OpenTofu → Terraform revert) used to
+The problem it kills: a single CI change (e.g. a Terraform toolchain revert) used to
 require an edit in every repo. Centralizing removes that drift.
 
 > **Renamed from `ci-workflows`.** It also **absorbed the former standalone
