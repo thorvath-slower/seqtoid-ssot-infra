@@ -4,6 +4,11 @@
 # Shared artifact homes for the CZ ID stack:
 #   - ECR repositories (one per service image), scan-on-push, immutable tags,
 #     KMS-encrypted, with a lifecycle policy to expire untagged layers.
+#   - ECR PULL-THROUGH CACHE rules that proxy the public base images we build on
+#     (Docker Hub: ruby / node / mysql / redis / nginx / opensearch, ...) into
+#     this account's ECR. Kills the Docker Hub rate-limit / outage risk on every
+#     build for ~$1/mo of storage — the image half of the supply-chain fix
+#     (GA-#511), mirroring what CodeArtifact does for packages below.
 #   - A CodeArtifact domain with an internal repo that PROXIES the public
 #     registries (npm / pypi / maven). Builds pull through this instead of
 #     straight from the internet, which is the registry half of the supply-chain
@@ -68,6 +73,55 @@ resource "aws_ecr_lifecycle_policy" "this" {
       },
     ]
   })
+}
+
+# --- ECR pull-through cache (public base images) ------------------------------
+# One rule per upstream public registry (GA-#511). Builds repoint their FROM
+# lines at "<ecr_host>/<prefix>/<upstream-path>" and ECR lazily mirrors + caches
+# the layers on first pull, so Docker Hub is no longer on the critical path for
+# every build (rate limits, outages). Cost is ~storage-only (~$1/mo/account).
+#
+# Docker Hub REQUIRES an authenticated pull-through rule: the rule references a
+# Secrets Manager secret (name MUST start with "ecr-pullthroughcache/") holding
+# a Docker Hub username + read-only access token. We create the secret shell
+# here so the ARN is stable and IaC-owned, but the secret VALUE is populated
+# out-of-band at/after apply (a real credential must never live in git). The
+# ignore_changes on secret_string keeps Terraform from clobbering that value on
+# subsequent applies. Anonymous/no-auth upstreams (e.g. public.ecr.aws) set
+# credential_arn = null via the map and create no secret.
+resource "aws_secretsmanager_secret" "pull_through" {
+  for_each = { for k, v in var.pull_through_cache_rules : k => v if v.authenticated }
+
+  # AWS mandates this exact name prefix for pull-through-cache credentials.
+  name        = "ecr-pullthroughcache/${var.name}-${each.key}"
+  description = "Upstream registry credentials for the ${each.key} ECR pull-through cache rule (${var.name})."
+  kms_key_id  = var.kms_key_arn
+  tags        = local.tags
+}
+
+# Placeholder version so the secret is never empty (a rule referencing an
+# unversioned secret fails). Replaced out-of-band with the real credential;
+# Terraform ignores the value thereafter.
+resource "aws_secretsmanager_secret_version" "pull_through" {
+  for_each = aws_secretsmanager_secret.pull_through
+
+  secret_id = each.value.id
+  secret_string = jsonencode({
+    username    = "REPLACE_ME"
+    accessToken = "REPLACE_ME"
+  })
+
+  lifecycle {
+    ignore_changes = [secret_string]
+  }
+}
+
+resource "aws_ecr_pull_through_cache_rule" "this" {
+  for_each = var.pull_through_cache_rules
+
+  ecr_repository_prefix = each.value.ecr_repository_prefix
+  upstream_registry_url = each.value.upstream_registry_url
+  credential_arn        = each.value.authenticated ? aws_secretsmanager_secret.pull_through[each.key].arn : null
 }
 
 # --- CodeArtifact -------------------------------------------------------------

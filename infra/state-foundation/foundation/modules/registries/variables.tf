@@ -15,6 +15,34 @@ variable "ecr_repositories" {
   default     = ["seqtoid-web", "graphql-federation", "seqtoid-workflows"]
 }
 
+variable "pull_through_cache_rules" {
+  description = <<-EOT
+    ECR pull-through cache rules that proxy public base-image registries into
+    this account's ECR (GA-#511). Keyed by a short id; each value:
+      - ecr_repository_prefix : local ECR namespace the mirror lands under
+                                (images become <ecr_host>/<prefix>/<upstream-path>).
+      - upstream_registry_url : the public registry to proxy (e.g.
+                                registry-1.docker.io for Docker Hub).
+      - authenticated         : true for registries that require login (Docker
+                                Hub). true => a Secrets Manager secret is created
+                                for the credential and referenced by the rule.
+    Default covers Docker Hub, the only upstream our Dockerfiles / compose files
+    pull from today (ruby, node, mysql, redis, nginx, opensearch*, etc.).
+  EOT
+  type = map(object({
+    ecr_repository_prefix = string
+    upstream_registry_url = string
+    authenticated         = bool
+  }))
+  default = {
+    dockerhub = {
+      ecr_repository_prefix = "docker-hub"
+      upstream_registry_url = "registry-1.docker.io"
+      authenticated         = true
+    }
+  }
+}
+
 variable "codeartifact_domain" {
   description = "CodeArtifact domain name."
   type        = string

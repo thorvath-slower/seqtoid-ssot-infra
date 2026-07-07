@@ -97,6 +97,25 @@ variable "ecr_repositories" {
   default = ["seqtoid-web", "graphql-federation", "seqtoid-workflows"]
 }
 
+# ECR pull-through cache rules for public base images (GA-#511). Defaults in the
+# registries module to a single Docker Hub rule (the only upstream our builds
+# use); override per-account here if a stack needs extra upstreams.
+variable "ecr_pull_through_cache_rules" {
+  description = "Per-account override for the registries module's ECR pull-through cache rules. See modules/registries/variables.tf for the shape and Docker Hub default."
+  type = map(object({
+    ecr_repository_prefix = string
+    upstream_registry_url = string
+    authenticated         = bool
+  }))
+  default = {
+    dockerhub = {
+      ecr_repository_prefix = "docker-hub"
+      upstream_registry_url = "registry-1.docker.io"
+      authenticated         = true
+    }
+  }
+}
+
 variable "tags" {
   description = "Extra tags merged into every resource."
   type        = map(string)

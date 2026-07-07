@@ -49,6 +49,12 @@ output "ecr_registry_url" {
 output "ecr_repository_urls" {
   value = module.registries.ecr_repository_urls
 }
+# ECR pull-through cache base URLs (GA-#511). Downstream builds prefix these onto
+# upstream image paths, e.g. "<dockerhub_base>/library/ruby:3.3.6". Consumed by
+# the Dockerfile FROM-repoint follow-up (post-apply).
+output "ecr_pull_through_cache_base_urls" {
+  value = module.registries.pull_through_cache_base_urls
+}
 output "codeartifact_endpoint" {
   value = module.registries.codeartifact_endpoint
 }
