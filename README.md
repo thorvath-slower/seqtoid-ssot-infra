@@ -131,7 +131,7 @@ model, backup/durability guarantees, and the bootstrap procedure.
 ├── docs/                         # architecture, security findings & hardening (see below)
 ├── specs/                        # spec-kit specs for individual change slices
 ├── .github/workflows/            # terraform-ci.yml (fmt+validate gate) · security.yml (scanners)
-├── .terraform-version             # pinned toolchain (1.12.1) — read by CI
+├── .terraform-version             # pinned toolchain (1.15.7) — read by CI
 ├── .trivyignore                  # audited security-scan exceptions
 ├── renovate.json                 # automated dependency updates
 └── TODO.md                       # outstanding foundation work
@@ -185,7 +185,7 @@ terraform apply
 
 ## Toolchain & conventions
 
-- **Terraform 1.12.1**, pinned in `.terraform-version` and read by CI (single source of truth).
+- **Terraform 1.15.7**, pinned in `.terraform-version` and read by CI (single source of truth).
 - **`.terraform.lock.hcl` is committed** per stack — providers are pinned and reproducible.
 - **Renovate** keeps providers/actions current (`renovate.json`).
 - **Small, single-concern PRs** traced to a tracking ticket; **validate locally**
@@ -232,7 +232,7 @@ private EKS control plane, **pull-based GitOps**, and **blue/green** promotion. 
 ## Status
 
 Greenfield and **built**: the state backend + foundation (network / EKS / OpenBao /
-registries / KMS / OIDC / roles) are in place and hardened, on Terraform 1.12.1 with a
+registries / KMS / OIDC / roles) are in place and hardened, on Terraform 1.15.7 with a
 green `fmt`+`validate` CI gate. Remaining work is tracked in `TODO.md` (private EKS
 endpoint slice, residual S3/VPC logging, foundation-apply promotion gating). Part of the
 broader seqtoid platform overhaul.

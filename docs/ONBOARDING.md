@@ -314,10 +314,10 @@ through the same S3 block. Same foundation/inheritance pattern either way — on
   pattern. So the "edit once, every stack moves" story currently applies to the *template*,
   not the foundation; foundation constraints are duplicated by hand (MAINTENANCE A11/A12).
   The root **`.terraform-version` is the one true live SSOT** for the toolchain.
-- **Version drift in prose.** `.terraform-version` is currently **`1.15.7`**, but some
-  narrative in `README.md` and `MAINTENANCE.md` still says `1.12.1`. When in doubt, trust
-  `.terraform-version` (it's what CI reads). If you're touching those files, fixing the
-  stated number is a welcome side-quest.
+- **`.terraform-version` is the toolchain SSOT.** It is currently **`1.15.7`** and the
+  narrative in `README.md`, `MAINTENANCE.md` and `templates/terraform-stack/README.md` now
+  matches it (reconciled under CZID-140). When in doubt, trust `.terraform-version` -- it's
+  what CI reads.
 - **CI stack list is maintained by hand** in three places that must stay in sync: the
   `stacks:` block in `terraform-ci.yml`, the `STACKS` array in `bin/check`, and
   `MAINTENANCE.md`. (Note: `MAINTENANCE.md` A13 still describes an older
