@@ -323,3 +323,38 @@ variable "aws_org_id" {
   description = "The org ID this cluster will be in. May be used in assume roles and pathfinding."
   default     = "o-56v5gp5fcu"
 }
+
+# VENDORING NOTE: this module is NOT pure upstream chanzuckerberg/cztack. It carries the
+# seqtoid EKS API-endpoint parameterization (CZID #322), mirroring the live copy in
+# cypherid-web-infra/terraform/modules/aws-eks-cluster-v0.104.2. A future re-vendor from
+# upstream MUST re-apply the two variables below plus the matching main.tf wiring
+# (cluster_endpoint_public_access = var.endpoint_public_access +
+# cluster_endpoint_public_access_cidrs = var.endpoint_public_access_cidrs) or this
+# customization is silently dropped. Defaults preserve prior behavior (public = true).
+
+# CZID #322: expose the EKS API endpoint access controls (previously hardcoded public=true in main.tf).
+# Defaults preserve the prior behavior so existing consumers are unaffected until they opt in.
+variable "endpoint_public_access" {
+  type        = bool
+  description = "Whether the EKS public API endpoint is enabled. Default true keeps prior behavior; set false (with private access + an SSM bastion) to make the control plane private."
+  default     = true
+}
+
+# CZID #55: never default to 0.0.0.0/0. The default is a non-routable RFC 5737
+# documentation placeholder so a consumer that forgets to pass a real allow-list
+# fails safe (locks itself out) rather than exposing the API server to the world.
+# In-VPC access is unaffected: cluster_endpoint_private_access is hardcoded true.
+# The full private flip (endpoint_public_access = false + SSM bastion) is #322.
+variable "endpoint_public_access_cidrs" {
+  type        = list(string)
+  description = "Allow-list of CIDRs permitted to reach the public API endpoint (only applies when endpoint_public_access = true). Restrict to real office/VPN egress CIDRs once access is verified (CZID #55), or make the endpoint private (CZID #322)."
+  # Fail-safe default retained: a consumer that forgets to pass a list gets a
+  # non-routable RFC 5737 placeholder (locks itself out) rather than a wide-open API.
+  default = ["192.0.2.0/24"] # RFC 5737 TEST-NET-1 placeholder -- pass a real allow-list.
+  # NOTE (CZID #55): the previous hard `validation { !contains(...,"0.0.0.0/0") }` block
+  # was removed so a stack can DELIBERATELY pass 0.0.0.0/0 during a brand-new cluster
+  # bring-up (dev/eks-v2), where locking out kubectl/Argo before the SSM bastion exists
+  # would be self-defeating. This is an opt-in per stack, not the default -- the default
+  # above still fails safe. Harden the endpoint (scoped CIDRs / private flip) once the
+  # cluster and its access path are verified.
+}

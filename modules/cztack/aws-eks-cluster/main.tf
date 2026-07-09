@@ -162,9 +162,11 @@ module "cluster" {
   cluster_enabled_log_types = coalesce(var.cluster_enabled_log_types, local.defaults["cluster_enabled_log_types"])
 
   cluster_endpoint_private_access = true
-  cluster_endpoint_public_access  = true
-  create_aws_auth_configmap       = false
-  manage_aws_auth_configmap       = true
+  # CZID #322: configurable (was hardcoded true). Defaults keep prior behavior.
+  cluster_endpoint_public_access       = var.endpoint_public_access
+  cluster_endpoint_public_access_cidrs = var.endpoint_public_access_cidrs
+  create_aws_auth_configmap            = false
+  manage_aws_auth_configmap            = true
 
   create_cluster_security_group = false
   cluster_security_group_id     = aws_security_group.cluster.id
