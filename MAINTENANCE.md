@@ -39,7 +39,7 @@ nothing will remind you — so this list is how we avoid silently drifting.
 
 | # | Item | Where (path → location in file) | Maintained by |
 |---|------|--------------------------------|---------------|
-| B1 | Terraform version (root SSOT) | `.terraform-version` → `1.12.1` | Renovate custom regex manager (`renovate.json`, `depName hashicorp/terraform`, github-releases); also read by CI via `terraform_version` in `terraform-ci.yml` |
+| B1 | Terraform version (root SSOT) | `.terraform-version` → `1.15.7` | Renovate custom regex manager (`renovate.json`, `depName hashicorp/terraform`, github-releases); also read by CI via `terraform_version` in `terraform-ci.yml` |
 | B2 | Terraform version (template SSOT) | `templates/terraform-stack/.terraform-version` | `templates/terraform-stack/renovate.json` custom regex manager (when the template ships as its own Renovate-enabled repo) |
 | B3 | Provider version **constraints** | `foundation/versions.tf` `aws`/`tls` `version`; each module `main.tf` `required_providers` `version`; `templates/terraform-stack/_shared/versions.tf` | Renovate `terraform` manager, grouped "terraform providers" (`renovate.json` packageRules) |
 | B4 | Committed provider lockfiles | `infra/state-foundation/foundation/.terraform.lock.hcl`; `…/bootstrap/.terraform.lock.hcl`; `templates/terraform-stack/envs/dev/example/.terraform.lock.hcl` | Renovate terraform manager updates lock hashes alongside constraint bumps. NOTE: `:maintainLockFilesDisabled` is set — locks move only *with* a constraint bump, not on their own |

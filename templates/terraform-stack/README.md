@@ -6,7 +6,7 @@ A starter template for **Terraform** infrastructure on the CZ ID platform — th
 
 ## How to use this
 1. **Generate from the template:** click "Use this template" on GitHub (this repo is a template repo), or `gh repo create thorvath-slower/<your-repo> --private --template thorvath-slower/terraform-template`.
-2. Pick your Terraform version in **`.terraform-version`** (currently `1.12.1`). CI reads this file — never hardcode the version anywhere else.
+2. Pick your Terraform version in **`.terraform-version`** (currently `1.15.7`). CI reads this file — never hardcode the version anywhere else.
 3. Wire each stack's backend (see [State](#state)).
 4. Add your stacks under `envs/<env>/<component>/` and list each in the `validate.yml` matrix.
 5. Commit `.terraform.lock.hcl` per stack (see [Lockfiles](#lockfiles)).
