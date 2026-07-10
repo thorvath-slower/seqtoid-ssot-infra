@@ -21,7 +21,7 @@ Companion docs (already in the repo / workspace):
 Two independent SSOT axes:
 
 1. **Per-repo runtime pins** -- `.ruby-version`, `.node-version`, `.python-version`,
-   `.terraform-version` / `.opentofu-version`. One file per tool per repo; every consumer
+   `.terraform-version`. One file per tool per repo; every consumer
    (CI `setup-*`, Dockerfile `FROM`, `engines`, `Gemfile ruby file:`) resolves *from that file*.
 2. **Cross-repo CI-tool pins** -- scanner/linter versions (trivy, tflint, checkov, gitleaks) and
    the Terraform/Node CI action versions live once inside the shared `seqtoid-ci-workflows`
@@ -47,7 +47,7 @@ Repos scanned: `seqtoid-web`, `seqtoid-workflows`, `cypherid-web-infra`, `seqtoi
 | seqtoid-workflows | -- | -- | `.python-version` 3.10 | -- |
 | cypherid-web-infra | -- | -- | -- | `.terraform-version` 1.15.7 |
 | seqtoid-ssot-infra | -- | -- | -- | `.terraform-version` 1.15.7 |
-| cypherid-workflow-infra | -- | -- | `.python-version` 3.9 | `.opentofu-version` 1.12.1 |
+| cypherid-workflow-infra | -- | -- | `.python-version` 3.9 | `.terraform-version` 1.15.7 |
 | seqtoid-ci-workflows | -- | -- | -- | (reads caller's file) |
 | cztack | -- | -- | -- | `.terraform-version` 1.15.7 |
 | seqtoid-graphql-federation-server | -- | `.node-version` 20.18.1 | -- | -- |
@@ -67,7 +67,7 @@ Repos scanned: `seqtoid-web`, `seqtoid-workflows`, `cypherid-web-infra`, `seqtoi
 | graphql-federation Dockerfile | YES + digest | `FROM node:20.18.1@sha256:968c...` matches `.node-version` |
 | graphql-federation `package.json` engines | MISSING | no `engines` block -- Node floor not enforced at install time |
 | web-infra / ssot-infra Terraform CI | YES | via `seqtoid-ci-workflows/terraform-ci.yml@v1` `terraform_version_file` |
-| workflow-infra IaC CI (`validate.yml`, `plan_call.yml`) | YES | `tofu_version_file: .opentofu-version` |
+| workflow-infra IaC CI (`validate.yml`, `plan_call.yml`) | YES | `terraform_version_file: .terraform-version` |
 | workflow-infra Python CI (`check.yml`) | YES | `python-version-file: .python-version` |
 | **seqtoid-workflows `idseq-dag-tests.yml`** | **NO -- HARDCODED** | `python-version: "3.12"` while repo `.python-version` = **3.10** (drift, and no file read) |
 
