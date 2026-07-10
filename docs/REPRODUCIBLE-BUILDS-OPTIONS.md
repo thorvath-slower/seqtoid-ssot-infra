@@ -21,7 +21,7 @@ byte-for-byte, offline** even if every upstream vanished? The single-source stor
 
 1. **Digest/lockfile pinning discipline** -- every input pinned by content hash, not a
    movable tag/range, so "the same commit builds the same bytes."
-2. **Toolchain capture** -- ruby/node/tofu/helm/aws-cli/go and OS bases mirrored and pinned,
+2. **Toolchain capture** -- ruby/node/terraform/helm/aws-cli/go and OS bases mirrored and pinned,
    not just referenced, so the *tools* are as reproducible as the deps.
 
 **Recommendation:** **AWS-native durable stores as the archive of record**
@@ -42,7 +42,7 @@ From the CZID-579 inventory, current pinning is uneven:
 | Container bases | mix digest / tag-only | seqtoid-web `ruby:3.3.6-slim` runtime, `python:3.8`, `node:18`, `ubuntu:*` are **tag-only** (mutable) |
 | Raw binaries / .debs / tarballs | version-pinned, **unverified** | ~30 bio-tools + node/chamber/samtools no checksum; **mysql `.deb` over HTTP**; `blast LATEST` unpinned |
 | GitHub Actions | partially SHA-pinned | first-party `actions/*` tag-pinned; federation `chanzuckerberg/*@main` (mutable branch) x18 |
-| Toolchain (ruby/node/tofu/helm/aws-cli/go) | version-declared, upstream-fetched | not mirrored -- an upstream outage blocks the build even if deps are cached |
+| Toolchain (ruby/node/terraform/helm/aws-cli/go) | version-declared, upstream-fetched | not mirrored -- an upstream outage blocks the build even if deps are cached |
 
 Reproducibility = close all five: pin every input by content, and mirror both deps **and**
 tools into durable stores we own.
@@ -73,7 +73,7 @@ Actions cache for restored deps, build Artifacts for outputs; retention configur
 Make in-account AWS stores the archive of record: **ECR** (+ pull-through cache, immutable
 digests) for images, **CodeArtifact** (retains every resolved package version) for
 npm/pip/gems, **versioned S3 + Object Lock** for raw binaries **and the toolchain**
-(ruby/node/tofu/helm/aws-cli/go installers, OS base tarballs), all checksum-verified.
+(ruby/node/terraform/helm/aws-cli/go installers, OS base tarballs), all checksum-verified.
 
 - **Pros**
   - **Durable, immutable, in-account** -- Object Lock + versioning + ECR immutable tags give
@@ -111,7 +111,7 @@ Independent of where things are stored, reproducibility needs:
   bases), npm/bundler locks kept, **pip hash-checking mode** enabled, `~=` tightened to
   `==`, `.terraform.lock.hcl` committed with provider hashes, **all raw binaries sha256-
   verified** (extend the one existing rustup `sha256sum -c` pattern), `blast LATEST` pinned.
-- **Toolchain capture:** ruby/node/tofu/helm/aws-cli/go versions **mirrored** (not just
+- **Toolchain capture:** ruby/node/terraform/helm/aws-cli/go versions **mirrored** (not just
   declared) into the S3 tool-mirror, pinned by checksum.
 - **Fork critical GH Actions to private repos**, pinned by SHA (federation
   `chanzuckerberg/*@main` is the priority).
@@ -168,7 +168,7 @@ mirrored + provably offline-rebuildable.*" Neither should be implemented separat
 
 1. **Endorse Option C** (AWS durable archive of record + GitHub for speed/native flows), or
    direct GitHub-native (A) / pure AWS (B).
-2. Confirm the **toolchain** (ruby/node/tofu/helm/aws-cli/go + OS bases) is mirrored to S3
+2. Confirm the **toolchain** (ruby/node/terraform/helm/aws-cli/go + OS bases) is mirrored to S3
    as a first-class requirement, not just the language/binary deps.
 3. Approve the **"offline rebuild from our mirrors" CI gate** as the acceptance test for
    reproducibility (block-on-fail once the mirrors exist).

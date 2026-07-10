@@ -165,7 +165,7 @@ envs mirror.
 ### 2.4 czid-infra -- BOOTSTRAP ONLY (no observability by design)
 
 Contents: `infra/state-foundation` (KMS key, S3 tfstate bucket, versioning/
-encryption) + `templates/tofu-stack`. No alarms, SNS, OTel, Sentry, dashboards,
+encryption) + `templates/terraform-stack`. No alarms, SNS, OTel, Sentry, dashboards,
 or Datadog in real source. Docs reference monitoring only conceptually.
 
 Recommendation: none for the repo itself -- it is not a runtime surface. It is

@@ -26,7 +26,7 @@ These gates are uniform across the infra + workflow repos via `seqtoid-ci-workfl
 |---|---|---|
 | Secret scanning | gitleaks (full history, hard-fail) | live where `@v1` adopted |
 | Dependency/IaC/Dockerfile vuln + misconfig | trivy (HIGH/CRIT hard-fail, `.trivyignore` baseline) | live |
-| IaC fmt + validate + lockfile | terraform/tofu `fmt -check` + `validate` | live on infra repos |
+| IaC fmt + validate + lockfile | terraform `fmt -check` + `validate` | live on infra repos |
 | Deep IaC policy | checkov | **opt-in, `soft_fail: true`, not gating** (#161) |
 | Local == CI parity | `make check` per repo | present |
 
@@ -184,7 +184,7 @@ integration specs; the Jest gap is large and needs sustained waves (see the two 
 ## 5. cypherid-workflow-infra (OpenTofu + Python lambdas -- the pipeline control plane)
 
 **Layers today**
-- **Static/IaC:** `validate.yml` (`tofu fmt`+`validate`), `plan_call.yml` / `plan_only.yml`,
+- **Static/IaC:** `validate.yml` (`terraform fmt`+`validate`), `plan_call.yml` / `plan_only.yml`,
   inline `security.yml`.
 - **Python lambda unit tests EXIST but are NOT gated:** `test/test_utils.py`, `test/system_test.py`,
   `lambdas/taxon-indexing-eviction/test/test_*.py` (reporter/change-detection/task-mgmt/config/data).
