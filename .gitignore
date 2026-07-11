@@ -21,3 +21,7 @@ override.tf.json
 
 # OS cruft
 .DS_Store
+
+# Internal per-repo backlog notes are tracked in Forgejo (czid/platform-overhaul),
+# not shipped in the repo (esp. since it is public / UCSF-bound). See #431.
+/TODO.md
