@@ -73,10 +73,23 @@ variable "eks_public_access_cidrs" {
 }
 
 # --- GitHub Actions OIDC (least-privilege deploy, no static keys) -------------
+# github_orgs is the canonical input: the OIDC deploy-role trusts every listed org.
+# During the merge-back transition (CZID-81/26) we trust BOTH the thorvath-slower fork
+# (active development + CI) AND the live IT-Academic-Research-Services org (main +
+# integration merged back there), so deploys work from either while the team cuts over.
+variable "github_orgs" {
+  description = "GitHub orgs allowed to assume the OIDC deploy role (fork + merged-back upstream)."
+  type        = list(string)
+  default     = ["thorvath-slower", "IT-Academic-Research-Services"]
+}
+
+# Retained for back-compat with any caller that still sets a single org. Folded into
+# the trust alongside github_orgs (empty default = ignored). Superseded by github_orgs;
+# its old jsims-slower default was stale (we no longer deploy from the upstream org).
 variable "github_org" {
-  description = "GitHub org that owns the CZ ID repos (for the OIDC deploy-role trust)."
+  description = "DEPRECATED -- use github_orgs. Optional single legacy org, folded into the trust."
   type        = string
-  default     = "jsims-slower"
+  default     = ""
 }
 
 variable "github_deploy_repos" {
