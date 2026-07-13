@@ -73,10 +73,23 @@ variable "eks_public_access_cidrs" {
 }
 
 # --- GitHub Actions OIDC (least-privilege deploy, no static keys) -------------
+# github_orgs is the canonical input: the OIDC deploy-role trusts every listed org.
+# During the merge-back transition (CZID-81/26) we trust BOTH the thorvath-slower fork
+# (active development + CI) AND the live IT-Academic-Research-Services org (main +
+# integration merged back there), so deploys work from either while the team cuts over.
+variable "github_orgs" {
+  description = "GitHub orgs allowed to assume the OIDC deploy role (fork + merged-back upstream)."
+  type        = list(string)
+  default     = ["thorvath-slower", "IT-Academic-Research-Services"]
+}
+
+# Retained for back-compat with any caller that still sets a single org. Folded into
+# the trust alongside github_orgs (empty default = ignored). Superseded by github_orgs;
+# its old jsims-slower default was stale (we no longer deploy from the upstream org).
 variable "github_org" {
-  description = "GitHub org that owns the CZ ID repos (for the OIDC deploy-role trust)."
+  description = "DEPRECATED -- use github_orgs. Optional single legacy org, folded into the trust."
   type        = string
-  default     = "jsims-slower"
+  default     = ""
 }
 
 variable "github_deploy_repos" {
@@ -95,6 +108,25 @@ variable "github_deploy_ref" {
 variable "ecr_repositories" {
   type    = list(string)
   default = ["seqtoid-web", "graphql-federation", "seqtoid-workflows"]
+}
+
+# ECR pull-through cache rules for public base images (GA-#511). Defaults in the
+# registries module to a single Docker Hub rule (the only upstream our builds
+# use); override per-account here if a stack needs extra upstreams.
+variable "ecr_pull_through_cache_rules" {
+  description = "Per-account override for the registries module's ECR pull-through cache rules. See modules/registries/variables.tf for the shape and Docker Hub default."
+  type = map(object({
+    ecr_repository_prefix = string
+    upstream_registry_url = string
+    authenticated         = bool
+  }))
+  default = {
+    dockerhub = {
+      ecr_repository_prefix = "docker-hub"
+      upstream_registry_url = "registry-1.docker.io"
+      authenticated         = true
+    }
+  }
 }
 
 variable "tags" {
@@ -118,10 +150,22 @@ variable "enable_container_insights" {
 variable "enable_eks_alarms" {
   description = <<-EOT
     Create the baseline EKS CloudWatch alarms (node NotReady / low node count /
-    pods failed / node CPU+memory) in monitoring-eks.tf. Requires
-    enable_container_insights so the ContainerInsights metrics exist; keep false
-    until the cluster + addon are live.
+    pods failed / node CPU+memory in monitoring-eks.tf, plus the control-plane
+    apiserver-5xx alarm in monitoring-eks-controlplane.tf). The node/pod alarms
+    require enable_container_insights so the ContainerInsights metrics exist; the
+    control-plane 5xx alarm only needs cluster audit logging (already enabled).
+    Keep false until the cluster (+ addon, for the node/pod alarms) is live.
   EOT
   type        = bool
   default     = false
+}
+
+variable "eks_apiserver_5xx_threshold" {
+  description = <<-EOT
+    Sum of apiserver 5xx audit entries over the alarm period (5m) above which the
+    EKS control-plane 5xx alarm fires. Conservative default; tune once a real
+    baseline is observed. Only used when enable_eks_alarms = true.
+  EOT
+  type        = number
+  default     = 10
 }

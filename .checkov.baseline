@@ -23,6 +23,17 @@
                     ]
                 }
             ]
+        },
+        {
+            "file": "/infra/state-foundation/foundation/modules/registries/main.tf",
+            "findings": [
+                {
+                    "resource": "module.registries.aws_secretsmanager_secret.pull_through",
+                    "check_ids": [
+                        "CKV2_AWS_57"
+                    ]
+                }
+            ]
         }
     ]
 }
