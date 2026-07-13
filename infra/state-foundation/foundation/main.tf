@@ -147,7 +147,13 @@ data "aws_iam_policy_document" "gha_assume" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = [for r in var.github_deploy_repos : "repo:${var.github_org}/${r}:ref:${var.github_deploy_ref}"]
+      # Trust every (org, repo) pair. distinct(compact(...)) folds the deprecated
+      # single github_org in and drops its empty default so a blank org is never trusted.
+      values = flatten([
+        for org in distinct(compact(concat(var.github_orgs, [var.github_org]))) : [
+          for r in var.github_deploy_repos : "repo:${org}/${r}:ref:${var.github_deploy_ref}"
+        ]
+      ])
     }
   }
 }
