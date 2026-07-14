@@ -14,6 +14,13 @@ output "kms_key_arn" {
   value       = aws_kms_key.tfstate.arn
 }
 
+# CZID-506: bootstrap-local alerts topic for state-backend alarms. Subscribe the
+# human-facing endpoint (email/Slack/chatbot) to this ARN out-of-band.
+output "state_alerts_topic_arn" {
+  description = "SNS topic ARN that the S3 state-bucket + DynamoDB lock-table alarms publish to."
+  value       = aws_sns_topic.state_alerts.arn
+}
+
 # Convenience: the exact partial-backend config every other stack should use.
 output "backend_hcl" {
   description = "Paste into state-foundation/backend.hcl"
